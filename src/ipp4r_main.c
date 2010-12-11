@@ -141,6 +141,10 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "dilate3x3", rb_Image_dilate3x3, 0);
   rb_define_method(rb_Image, "erode3x3!", rb_Image_erode3x3_bang, 0);
   rb_define_method(rb_Image, "erode3x3", rb_Image_erode3x3, 0);
+  rb_define_method(rb_Image, "dilate!", rb_Image_dilate_bang, -1);
+  rb_define_method(rb_Image, "dilate", rb_Image_dilate, -1);
+  rb_define_method(rb_Image, "erode!", rb_Image_erode_bang, -1);
+  rb_define_method(rb_Image, "erode", rb_Image_erode, -1);
   rb_define_method(rb_Image, "filter_box!", rb_Image_filter_box_bang, -1);
   rb_define_method(rb_Image, "filter_box", rb_Image_filter_box, -1);
   rb_define_method(rb_Image, "filter_min", rb_Image_filter_min, -1);
@@ -166,7 +170,7 @@ void Init_ipp4r() {
   RB_DEFINE_ACCESSOR(ColorRef, b);
   RB_DEFINE_ACCESSOR(ColorRef, a);
   RB_DEFINE_READER(ColorRef, x);
-  RB_DEFINE_READER(ColorRef, x);
+  RB_DEFINE_READER(ColorRef, y);
 
   rb_Size = rb_define_class_under(rb_Ipp, "Size", rb_cObject);
   rb_define_alloc_func(rb_Size, rb_Size_alloc);

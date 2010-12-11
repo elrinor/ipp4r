@@ -6,6 +6,7 @@ typedef struct _Data Data;
 typedef struct _Color Color;
 typedef struct _ColorRef ColorRef;
 typedef struct _Enum Enum;
+typedef struct _Matrix Matrix;
 
 #endif
 

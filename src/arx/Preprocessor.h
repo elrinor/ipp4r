@@ -7,7 +7,7 @@
  * @file
  *
  * This is ARX Preprocessor library header file. <br>
- * The macros defined here are used for high-level template metaprogramming. <p>
+ * The macros defined here are used for high-level preprocessor metaprogramming. <p>
  *
  * Please note that since preprocessor implementation varies from compiler to compiler, this library may not work correctly with unsupported compilers. <br>
  * Currently supported compilers:

@@ -805,6 +805,86 @@ TRACE_FUNC(int, image_erode3x3_copy, (Image* image, Image** dst)) {
 
 
 // -------------------------------------------------------------------------- //
+// image_dilate
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_dilate, (Image* image, Matrix* mask, IppiPoint anchor)) {
+  int status;
+  IppiSize maskSize;
+
+  assert(image != NULL && mask != NULL);
+
+  if(IS_ERROR(status = image_ensure_border(image, required_border(mask->size, anchor))))
+    TRACE_RETURN(status);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiDilate_, IR, (PWI(image), (char*) mask->data, mask->size, anchor)), Unreachable(), ippStsBadArgErr);
+
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_dilate_copy
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_dilate_copy, (Image* image, Image** dst, Matrix* mask, IppiPoint anchor)) {
+  int status;
+
+  assert(image != NULL && dst != NULL && mask != NULL);
+
+  if(IS_ERROR(status = image_ensure_border(image, required_border(mask->size, anchor))))
+    TRACE_RETURN(status);
+
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
+    TRACE_RETURN(status);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiDilate_, R, (PWPWI(image, *dst), (char*) mask->data, mask->size, anchor)), Unreachable(), ippStsBadArgErr);
+  if(IS_ERROR(status))
+    image_destroy(*dst);
+
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_erode
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_erode, (Image* image, Matrix* mask, IppiPoint anchor)) {
+  int status;
+  IppiSize maskSize;
+
+  assert(image != NULL && mask != NULL);
+
+  if(IS_ERROR(status = image_ensure_border(image, required_border(mask->size, anchor))))
+    TRACE_RETURN(status);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiErode_, IR, (PWI(image), (char*) mask->data, mask->size, anchor)), Unreachable(), ippStsBadArgErr);
+
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_erode_copy
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_erode_copy, (Image* image, Image** dst, Matrix* mask, IppiPoint anchor)) {
+  int status;
+
+  assert(image != NULL && dst != NULL && mask != NULL);
+
+  if(IS_ERROR(status = image_ensure_border(image, required_border(mask->size, anchor))))
+    TRACE_RETURN(status);
+
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
+    TRACE_RETURN(status);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiErode_, R, (PWPWI(image, *dst), (char*) mask->data, mask->size, anchor)), Unreachable(), ippStsBadArgErr);
+  if(IS_ERROR(status))
+    image_destroy(*dst);
+
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
 // image_filter_box
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(int, image_filter_box, (Image* image, IppiSize maskSize, IppiPoint anchor)) {

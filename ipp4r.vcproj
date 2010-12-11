@@ -113,6 +113,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\ipp4r_matrix.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipp4r_matrix.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\ipp4r_metatype.c"
 				>
 			</File>

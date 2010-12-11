@@ -322,6 +322,50 @@ VALUE rb_Image_erode3x3_bang(VALUE self);
 /**
  * Method:
  * <ul>
+ * <li> <tt>Ipp::Image#dilate(Matrix mask, Point anchor = maskSize / 2) </tt>
+ * </ul>
+ *
+ * @returns a dilated copy of a source image
+ */
+VALUE rb_Image_dilate(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#dilate!(Matrix mask, Point anchor = maskSize / 2) </tt>
+ * </ul>
+ *
+ * @returns self
+ */
+VALUE rb_Image_dilate_bang(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#erode(Matrix mask, Point anchor = maskSize / 2) </tt>
+ * </ul>
+ *
+ * @returns an eroded copy of a source image
+ */
+VALUE rb_Image_erode(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#erode!(Matrix mask, Point anchor = maskSize / 2) </tt>
+ * </ul>
+ *
+ * @returns self
+ */
+VALUE rb_Image_erode_bang(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
  * <li> <tt>Ipp::Image#filter_box(size, anchor = {size.width / 2, size.height / 2}) </tt>
  * </ul>
  *

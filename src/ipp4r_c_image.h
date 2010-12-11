@@ -376,6 +376,52 @@ int image_erode3x3_copy(Image* image, Image** dst);
 
 
 /**
+ * Performs in-place dilation of an image using the specified boolean mask. In the four-channel image the alpha channel is not processed.
+ *
+ * @param image source image
+ * @param mask mask
+ * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_dilate(Image* image, Matrix* mask, IppiPoint anchor);
+
+
+/**
+ * Performs dilation of an image using the specified boolean mask. In the four-channel image the alpha channel is not processed.
+ *
+ * @param image source image
+ * @param dst destination image
+ * @param mask mask
+ * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_dilate_copy(Image* image, Image** dst, Matrix* mask, IppiPoint anchor);
+
+
+/**
+ * Performs in-place erosion of an image using the specified boolean mask. In the four-channel image the alpha channel is not processed.
+ *
+ * @param image source image
+ * @param mask mask
+ * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_erode(Image* image, Matrix* mask, IppiPoint anchor);
+
+
+/**
+ * Performs erosion of an image using the specified boolean mask. In the four-channel image the alpha channel is not processed.
+ *
+ * @param image source image
+ * @param dst destination image
+ * @param mask mask
+ * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_erode_copy(Image* image, Image** dst, Matrix* mask, IppiPoint anchor);
+
+
+/**
  * Blurs an image using a simple box filter.
  * 
  * @param image source image

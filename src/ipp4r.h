@@ -13,6 +13,7 @@
 #include "ipp4r_macro.h"
 #include "ipp4r_metatype.h"
 #include "ipp4r_struct.h"
+#include "ipp4r_matrix.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -87,8 +88,9 @@ IPP4R_EXTERN VALUE rb_MaskSize;
 // Frequently used IDs
 // -------------------------------------------------------------------------- //
 #define IPP4R_IDS                                                               \
-  (10, (                                                                        \
+  (13, (                                                                        \
     (spaceship,            "<=>"),                                              \
+    (aref,                 "[]"),                                               \
     (enumerators,          NULL),                                               \
     (enumerators_by_value, NULL),                                               \
     (r,                    NULL),                                               \
@@ -97,7 +99,9 @@ IPP4R_EXTERN VALUE rb_MaskSize;
     (a,                    NULL),                                               \
     (new,                  NULL),                                               \
     (private_class_method, NULL),                                               \
-    (clone,                NULL)                                                \
+    (clone,                NULL),                                               \
+    (row_size,             NULL),                                               \
+    (column_size,          NULL)                                                \
   ))
 
 #define IPP4R_ID_DECL_I(NAMES, ARG)                                             \

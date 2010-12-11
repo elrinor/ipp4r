@@ -110,10 +110,10 @@ VALUE rb_Color_to_s(VALUE self) {
   char buf[100]; // 10 is enough, but 100 is safer %)
 
   sprintf(buf, "#%02x%02x%02x%02x", 
-    (int) (255.0f * rb_funcall(self, rb_ID_r, 0)), 
-    (int) (255.0f * rb_funcall(self, rb_ID_g, 0)),
-    (int) (255.0f * rb_funcall(self, rb_ID_b, 0)),
-    (int) (255.0f * rb_funcall(self, rb_ID_a, 0))
+    (int) (255.0f * R2C_METANUM(rb_funcall(self, rb_ID_r, 0))), 
+    (int) (255.0f * R2C_METANUM(rb_funcall(self, rb_ID_g, 0))),
+    (int) (255.0f * R2C_METANUM(rb_funcall(self, rb_ID_b, 0))),
+    (int) (255.0f * R2C_METANUM(rb_funcall(self, rb_ID_a, 0)))
   );
   return rb_str_new2(buf);
 }
