@@ -17,6 +17,7 @@
 #define PIXEL_AT(IMAGE, X, Y) ((void*)((char*) PIXELS(IMAGE) + Y * WSTEP(IMAGE) + X * PIXELSIZE(IMAGE)))
 #define WSTEP(IMAGE) ((IMAGE)->data->wStep)
 #define IPPISIZE(IMAGE) (image_ippisize(IMAGE))
+#define SHARED(IMAGE) ((IMAGE)->data->shared)
 
 #define METATYPE(IMAGE) ((IMAGE)->data->metaType)
 #define CHANNELS(IMAGE) (metatype_channels(METATYPE(IMAGE)))
@@ -28,6 +29,7 @@
 // -------------------------------------------------------------------------- //
 #define PWPWI(src, dst) PIXELS(src), WSTEP(src), PIXELS(dst), WSTEP(dst), IPPISIZE(dst)
 #define PWI(src) PIXELS(src), WSTEP(src), IPPISIZE(src)
+
 
 // -------------------------------------------------------------------------- //
 // Supplementary functions
@@ -131,7 +133,6 @@ TRACE_FUNC(Image*, image_new, (int width, int height, IppMetaType metaType)) {
 
   image->data = data;
   image->is_subimage = FALSE;
-  image->shared = FALSE; // initially image is not shared
 
   TRACE_RETURN(image);
 } TRACE_END
@@ -145,7 +146,7 @@ TRACE_FUNC(Image*, image_subimage, (Image* image, int x, int y, int width, int h
   int status = ippStsNoErr;
   
   assert(image != NULL);
-  assert(image->shared);
+  assert(SHARED(image));
   assert(x >= 0 && y >= 0 && x + width <= WIDTH(image) && y + height <= HEIGHT(image));
 
   result = (Image*) malloc(sizeof(Image));
@@ -175,7 +176,7 @@ end:
 TRACE_FUNC(void, image_destroy, (Image* image)) {
   assert(image != NULL);
 
-  if(!image->shared)
+  if(!SHARED(image))
     data_destroy(image->data);
   free(image);
 } TRACE_END
@@ -187,8 +188,10 @@ TRACE_FUNC(void, image_destroy, (Image* image)) {
 TRACE_FUNC(void, image_mark, (Image* image)) {
   /* I check for NULL not because of paranoia.
    * The problem is that in rb_Image_alloc we initialize image with NULL, and subsequent call to rb_Image_initialize may trigger gc while our image is still NULL! */
-  if(image != NULL && image->shared)
+  if(image != NULL) {
+    assert(SHARED(image));
     rb_gc_mark(image->rb_data);
+  }
 } TRACE_END
 
 
@@ -197,8 +200,11 @@ TRACE_FUNC(void, image_mark, (Image* image)) {
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(void, image_share, (Image* image)) {
   assert(image != NULL);
+  assert(!SHARED(image));
 
-  image->shared = TRUE;
+  TRACE(("%08X data=%08X", image, image->data));
+
+  image->data->shared = TRUE;
   image->rb_data = Data_Wrap_Struct(rb_Data, NULL, data_destroy, image->data);
 } TRACE_END
 
@@ -207,7 +213,9 @@ TRACE_FUNC(void, image_share, (Image* image)) {
 // image_wrap
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(VALUE, image_wrap, (Image* image)) {
-  if(image != NULL) /* check for NULL is needed, see rb_Image_alloc */
+  /* Check for NULL is needed, see rb_Image_alloc.
+   * Check for SHARED is needed too, see rb_Image_subimage */
+  if(image != NULL && !SHARED(image)) 
     image_share(image);
   TRACE_RETURN(Data_Wrap_Struct(rb_Image, image_mark, image_destroy, image));
 } TRACE_END

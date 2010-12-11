@@ -95,6 +95,10 @@ TRACE_FUNC(Data*, data_new, (int width, int height, IppMetaType metaType)) {
   data->width = width;
   data->wStep = wStep;
   data->pixelSize = metatype_pixel_size(metaType);
+  data->shared = FALSE; /* Initially data is not shared */
+
+  TRACE(("%08X w=%d h=%d m=%d p=%08X", data, width, height, metaType, pixels));
+
   TRACE_RETURN(data);
 } TRACE_END
 
@@ -105,7 +109,7 @@ TRACE_FUNC(Data*, data_new, (int width, int height, IppMetaType metaType)) {
 TRACE_FUNC(void, data_destroy, (Data* data)) {
   assert(data != NULL);
 
-  TRACE(("free_data %d: h=%d, w=%d, m=%d, p=%d", data, data->height, data->width, data->metaType, data->pixels))
+  TRACE(("%08X w=%d h=%d m=%d p=%08X", data, data->width, data->height, data->metaType, data->pixels));
 
   ipp4rFree(data->pixels);
   free(data);

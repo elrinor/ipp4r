@@ -22,6 +22,9 @@ struct _Data {
   int height;           /**< image height in pixels */
   int wStep;            /**< size of aligned image row in bytes */
   int pixelSize;        /**< size of one image pixel in bytes */
+
+  int shared;           /**< Is this data structure already registered in ruby gc and is shared between several images? 
+                         *   I.e. mustn't we deallocate it when freeing the corresponding image? */
 };
 
 

@@ -49,7 +49,7 @@ extern "C" {
  * </code>
  * It seems everything is OK, but it's not. A call to xalloc may trigger gc, which will sweep out the underlying shared Data structure and we'll end up with a segmentation fault.
  * To avoid it, we use lazy gc registration of Data structure - it gets registered in image_wrap. And if you call image_destroy before a call to image_wrap, the Data will be 
- * deallocated too.
+ * deallocated.
  */
 struct _Image {
   VALUE rb_data;        /**< Ruby wrapper around Data associated with this Image */
@@ -60,8 +60,6 @@ struct _Image {
   int y;                /**< ROI y coordinate */
   int width;            /**< width of ROI in pixels */
   int height;           /**< height of ROI in pixels */
-
-  int shared;           /**< registered in ruby GC and ready for sharing? @see image_new */
 };
 
 // -------------------------------------------------------------------------- //
@@ -70,9 +68,6 @@ struct _Image {
 /**
  * Allocates memory for image.
  * 
- * @param shared Indicates whether the underlying data structure must be registered in ruby GC. If shared is TRUE, then image_destroy does not deallocate the data, since it
- *   can be used by other Image instances. If shared is FALSE, then image_destroy also deallocates the data. Use shared=FALSE when you create a temporary Image object inside 
- *   your C code and do not want ruby GC to accidentally sweep it out while it's still in use.
  * @returns newly allocated Image, or NULL in case of an error.
  */
 Image* image_new(int width, int height, IppMetaType metaType);

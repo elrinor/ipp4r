@@ -101,7 +101,7 @@ TRACE_FUNC(VALUE, rb_Image_jaehne, (int argc, VALUE *argv, VALUE klass)) {
 // -------------------------------------------------------------------------- //
 // rb_Image_subimage
 // -------------------------------------------------------------------------- //
-VALUE rb_Image_subimage(int argc, VALUE *argv, VALUE self) {
+TRACE_FUNC(VALUE, rb_Image_subimage, (int argc, VALUE *argv, VALUE self)) {
   int x0, y0, x1, y1, width, height, t;
   Image* image;
   Image* newImage;
@@ -148,8 +148,8 @@ VALUE rb_Image_subimage(int argc, VALUE *argv, VALUE self) {
   newImage = image_subimage(image, x0, y0, width, height, &status);
   raise_on_error(status);
 
-  return image_wrap(newImage);
-}
+  TRACE_RETURN(image_wrap(newImage));
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //

@@ -56,7 +56,6 @@ IPP4R_EXTERN int trace_depth;
 #  define TRACE(PRINTF_ARGS) 
 #endif
 
-//#define DBG() printf("%s", "#####"__FUNCTION__ ":" ARX_STRINGIZE(__LINE__) "!\n");
 
 // -------------------------------------------------------------------------- //
 // Global class variables
