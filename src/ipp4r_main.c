@@ -6,11 +6,6 @@
 #include "ipp4r.h"
 
 /* THE GLOBAL TODO
- * + Ipp::ColorRef
- * + Ipp::Image#[x, y]
- * + Ipp::Image#[x, y]=
- * + Ipp::Image#sub_image
- * - Ipp::Image#threshold!
  * - freeze issue
  * - taint issue
  */
@@ -120,7 +115,6 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "dilate3x3", rb_Image_dilate3x3, 0);
   rb_define_method(rb_Image, "erode3x3!", rb_Image_erode3x3_bang, 0);
   rb_define_method(rb_Image, "erode3x3", rb_Image_erode3x3, 0);
-
 
   rb_Data = rb_define_class_under(rb_Image, "Data", rb_cObject);
 

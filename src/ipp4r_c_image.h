@@ -136,12 +136,6 @@ int image_width(Image* image);
 
 
 /**
- * @returns available image border
- */
-int image_border_available(Image* image);
-
-
-/**
  * @returns channel type of a given image
  */
 IppChannels image_channels(Image* image);
@@ -157,6 +151,12 @@ IppDataType image_datatype(Image* image);
  * @returns metatype of a given image
  */
 IppMetaType image_metatype(Image* image);
+
+
+/**
+ * @returns available image border
+ */
+int image_border_available(Image* image);
 
 
 /**
