@@ -47,6 +47,8 @@
 #define R2C_STR(V) RSTRING_PTR(V)
 #define C2R_DBL(V) rb_float_new(V)
 #define R2C_DBL(V) NUM2DBL(V)
+#define R2C_FLT(V) ((float)R2C_DBL(V))
+#define C2R_FLT(V) C2R_DBL(V)
 
 
 // -------------------------------------------------------------------------- //

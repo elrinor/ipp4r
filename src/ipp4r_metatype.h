@@ -28,9 +28,10 @@
  * <li> an enum and channel count value for each CHANNELS
  * </ul>
  * pp-time abstractions can be converted to their compile-time equivalents using conversion macros. 
- * Also at compile-time we have a special number type METANUM. It's a supertype for all DATATYPEs.<p/>
+ * Also at compile-time we have a special number type - IppMetaNumber, which is a supertype for all data types. 
+ * The corresponding pp-time DATATYPE for IppMetaNumber is D_METANUM. <p/>
  *
- * At run-time we have METACALL macros which perform a call basing on the value of METATYPE enum, and converters to and from METANUM type. <p/>
+ * At run-time we have METACALL macros which perform a call basing on the value of METATYPE enum, and converters to and from IppMetaNumber type. <p/>
  */
 
 #ifdef __cplusplus
@@ -126,6 +127,7 @@ extern "C" {
 #define M_REPLACE_D_IF_D(METATYPE, OLD_DATATYPE, NEW_DATATYPE) IF_M_IS_D(METATYPE, OLD_DATATYPE, M_REPLACE_D(METATYPE, NEW_DATATYPE), METATYPE)
 #define M_REPLACE_C_IF_C(METATYPE, OLD_CHANNELS, NEW_CHANNELS) IF_M_IS_C(METATYPE, OLD_CHANNELS, M_REPLACE_C(METATYPE, NEW_CHANNELS), METATYPE)
 
+
 // -------------------------------------------------------------------------- //
 // pp-time to compile-time converters
 // -------------------------------------------------------------------------- //
@@ -161,8 +163,8 @@ extern "C" {
 // -------------------------------------------------------------------------- //
 typedef D_CTYPE(D_METANUM) IppMetaNumber; /**< Supertype for all data types */
 
-#define R2C_METANUM(V) ((IppMetaType) R2C_DBL(V))
-#define C2R_METANUM(V) C2R_DBL(V)
+//#define R2C_METANUM(V) ((IppMetaType) R2C_DBL(V))
+//#define C2R_METANUM(V) C2R_DBL(V)
 
 #define M2C_NUMBER(METATYPE, METANUM)                                           \
   M2C_NUMBER_D(M_DATATYPE(METATYPE), (METANUM))
@@ -188,6 +190,22 @@ typedef enum {
 // -------------------------------------------------------------------------- //
 // METACALL
 // -------------------------------------------------------------------------- //
+#if 0
+#  define IPPMETACALL(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE)
+#endif
+
+#define IPPMETACALL ARX_JOIN(IPPMETACALL_, ARX_AUTO_REC(IPPMETACALL_P, 4))
+
+#define ARX_ARRAY_FOREACH_P(n) ARX_JOIN(ARX_ARRAY_FOREACH_CHECK_, ARX_ARRAY_FOREACH_ ## n((1, (0)), ARX_NIL ARX_TUPLE_EAT_2, ARX_NIL))
+
+#define ARX_ARRAY_FOREACH_CHECK_ARX_NIL 1
+#define ARX_ARRAY_FOREACH_CHECK_ARX_ARRAY_FOREACH_1(ARRAY, M, ARG) 0
+#define ARX_ARRAY_FOREACH_CHECK_ARX_ARRAY_FOREACH_2(ARRAY, M, ARG) 0
+#define ARX_ARRAY_FOREACH_CHECK_ARX_ARRAY_FOREACH_3(ARRAY, M, ARG) 0
+
+#define ARX_ARRAY_FOREACH_1(ARRAY, M, ARG) ARX_ARRAY_FOREACH_1_OO(ARX_ARRAY_SIZE(ARRAY), ARX_ARRAY_REVERSE(ARRAY), M, ARG)
+
+
 #define IPPMETACALL(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE) \
   switch(CRITERIA) {                                                            \
   ARX_ARRAY_FOREACH(CRITERIA_ARRAY, IPPMETACALL_I, (3, (LEFT_PART, FUNCTION, ARGS))) \
@@ -222,9 +240,15 @@ IppChannels metatype_channels(IppMetaType metaType);
 
 
 /**
-* @returns IppDataType encoded in the given IppMetaType
-*/
+ * @returns IppDataType encoded in the given IppMetaType
+ */
 IppDataType metatype_datatype(IppMetaType metaType);
+
+
+/**
+ * @returns IppMetaType composed of given IppDataType and IppChannels
+ */
+IppMetaType metatype_compose(IppDataType dataType, IppChannels channels);
 
 
 #ifdef __cplusplus

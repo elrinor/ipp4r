@@ -32,17 +32,29 @@ static void metatype_static_check(void) {
 // ippmetatype_channels
 // -------------------------------------------------------------------------- //
 IppChannels metatype_channels(IppMetaType metaType) {
-#define METAFUNC(M, ARGS) C_CENUM(M_CHANNELS(M))
+#define METAFUNC(C, ARGS) C_CENUM(M_CHANNELS(C))
   IPPMETACALL(metaType, return, M_SUPPORTED, METAFUNC, ~, Unreachable(), -1);
 #undef METAFUNC
 }
 
 
-/**
-* @returns IppDataType encoded in the given IppMetaType
-*/
+// -------------------------------------------------------------------------- //
+// metatype_datatype
+// -------------------------------------------------------------------------- //
 IppDataType metatype_datatype(IppMetaType metaType) {
-#define METAFUNC(M, ARGS) D_CENUM(M_DATATYPE(M))
+#define METAFUNC(D, ARGS) D_CENUM(M_DATATYPE(D))
   IPPMETACALL(metaType, return, M_SUPPORTED, METAFUNC, ~, Unreachable(), -1);
 #undef METAFUNC
+}
+
+
+// -------------------------------------------------------------------------- //
+// metatype_compose 
+// -------------------------------------------------------------------------- //
+IppMetaType metatype_compose(IppDataType dataType, IppChannels channels) {
+#define METAFUNC_C(C, D) M_CREATE(D, C)
+#define METAFUNC_D(D, ARGS) IPPMETACALL(channels, return, C_SUPPORTED, METAFUNC_C, D, Unreachable(); return -1, ARX_EMPTY())
+  IPPMETACALL(dataType, ARX_EMPTY(), D_SUPPORTED, METAFUNC_D, ~, Unreachable(); return -1, ARX_EMPTY());
+#undef METAFUNC_D
+#undef METAFUNC_C
 }

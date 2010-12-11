@@ -14,7 +14,7 @@
 #define WIDTH(IMAGE) ((IS_SUBIMAGE(IMAGE) ? (IMAGE)->width : (IMAGE)->data->width))
 #define PIXELSIZE(IMAGE) ((IMAGE)->data->pixelSize)
 #define PIXELS(IMAGE) (image_pixels(IMAGE))
-#define PIXEL_AT(IMAGE, X, Y) ((char*) PIXELS(IMAGE) + Y * WSTEP(IMAGE) + X * PIXELSIZE(IMAGE))
+#define PIXEL_AT(IMAGE, X, Y) ((void*)((char*) PIXELS(IMAGE) + Y * WSTEP(IMAGE) + X * PIXELSIZE(IMAGE)))
 #define WSTEP(IMAGE) ((IMAGE)->data->wStep)
 #define IPPISIZE(IMAGE) (image_ippisize(IMAGE))
 
@@ -297,6 +297,13 @@ int image_addranduniform(Image* image, IppMetaNumber lo, IppMetaNumber hi) {
 
 
 // -------------------------------------------------------------------------- //
+// image_convert_datatype_copy
+// -------------------------------------------------------------------------- //
+Image* image_convert_datatype_copy(Image* image, IppDataType dataType, int* pStatus) {
+
+}
+
+// -------------------------------------------------------------------------- //
 // image_convert_copy
 // -------------------------------------------------------------------------- //
 Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
@@ -304,9 +311,9 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
   Image *result, *result2;
   int specialCase;
 
-  /* TODO */
-
   assert(image != NULL);
+
+
 
   if(CHANNELS(image) == channels) {
     /* nothing to convert */
@@ -320,6 +327,11 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
     specialCase = TRUE;
   } else
     specialCase = FALSE;
+
+
+
+
+
 
   result = image_new(WIDTH(image), HEIGHT(image), channels);
 
@@ -406,29 +418,16 @@ int image_convert(Image* image, IppChannels channels) {
 // image_get_pixel
 // -------------------------------------------------------------------------- //
 int image_get_pixel(Image* image, int x, int y, Color* color) {
-  char* p;
+  void* p;
 
   assert(image != NULL);
   assert(x >= 0 && y >= 0 && x < WIDTH(image) && y <= HEIGHT(image));
 
   p = PIXEL_AT(image, x, y);
 
-  color->a = 1.0f;
-  switch(CHANNELS(image)) {
-  case ippC1:
-    color->r = color->g = color->b = *p;
-  	break;
-  case ippAC4:
-    color->as_array[3] = *(p + 3);
-  case ippC3:
-    color->as_array[2] = *(p + 2);
-    color->as_array[1] = *(p + 1);
-    color->as_array[0] = *(p + 0);
-    break;
-  default:
-    Unreachable();
-    return ippStsBadArgErr;
-  }
+#define METAFUNC(M, ARGS) C2M_COLOR_TO(M, p, color->as_array)
+  IPPMETACALL(METATYPE(image), ARX_EMPTY(), M_SUPPORTED, METAFUNC, ~, Unreachable(); return ippStsBadArgErr, ARX_EMPTY())
+#undef METAFUNC
 
   return ippStsNoErr;
 }
@@ -438,32 +437,16 @@ int image_get_pixel(Image* image, int x, int y, Color* color) {
 // image_set_pixel
 // -------------------------------------------------------------------------- //
 int image_set_pixel(Image* image, int x, int y, Color* color) {
-  char* p;
+  void* p;
 
   assert(image != NULL);
   assert(x >= 0 && y >= 0 && x < WIDTH(image) && y <= HEIGHT(image));
 
   p = PIXEL_AT(image, x, y);
 
-  M2C_COLOR_TO(8u_C3, color->as_array, p);
-
-  M2C_COLOR_TO(8u_C1, color->as_array, p);
-
-  switch(CHANNELS(image)) {
-  case ippC1:
-    *p = (unsigned char) color_gray(color);
-    break;
-  case ippAC4:
-    *(p + 3) = (unsigned char) color->as_array[3];
-  case ippC3:
-    *(p + 2) = (unsigned char) color->as_array[2];
-    *(p + 1) = (unsigned char) color->as_array[1];
-    *(p + 0) = (unsigned char) color->as_array[0];
-    break;
-  default:
-    Unreachable();
-    return ippStsBadArgErr;
-  }
+#define METAFUNC(M, ARGS) M2C_COLOR_TO(M, color->as_array, p)
+  IPPMETACALL(METATYPE(image), ARX_EMPTY(), M_SUPPORTED, METAFUNC, ~, Unreachable(); return ippStsBadArgErr, ARX_EMPTY())
+#undef METAFUNC
 
   return ippStsNoErr;
 }
