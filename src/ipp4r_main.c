@@ -11,19 +11,12 @@
  * - borders of newly created images
  */
 
-/* 2ASK:
- * - portability - do we need it, and what platforms / compilers we need to support
- * - unit tests
- * - other ipp functionality
- */
-
-// TODO: other compilers...
 #if defined(_MSC_VER) || defined(__ICL)
 #  pragma comment(lib, "ippi.lib")
 #  pragma comment(lib, "ippcc.lib")
 #  pragma comment(lib, "ippcore.lib")
-#  pragma comment(lib, "highgui.lib") /* REMOVE ME */
-#  pragma comment(lib, "cxcore.lib") /* REMOVE ME */
+#  pragma comment(lib, "highgui.lib")
+#  pragma comment(lib, "cxcore.lib")
 #endif
 
 

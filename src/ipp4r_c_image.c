@@ -1,8 +1,9 @@
 #include <ipp.h>
 #include <ruby.h>
-#include <highgui.h> /* REMOVE ME */
 #include <time.h> /* for rand seed */
 #include <stdio.h> /* for debug purposes */
+#include <highgui.h>
+
 #include "ipp4r.h"
 #include "ipp4r_metatype.h"
 
@@ -147,7 +148,7 @@ TRACE_FUNC(int, image_ensure_border, (Image* image, int border)) {
   srcRoi.height = image->data->height  + 2 * BORDER(image);
   dstRoi.width  = result->data->width  + 2 * BORDER(result);
   dstRoi.height = result->data->height + 2 * BORDER(result);
-                                                                /* TODO: test this hack */
+  
 #define METAFUNC(M, ARG) ARX_JOIN_3(ippiCopyReplicateBorder_, M_REPLACE_D_IF_D(M, 32f, 32s), R) (image->data->buffer, WSTEP(image), srcRoi, result->data->buffer, WSTEP(result), dstRoi, borderGrowth, borderGrowth)
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
 #undef METAFUNC  

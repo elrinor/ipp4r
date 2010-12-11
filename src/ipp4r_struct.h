@@ -3,6 +3,11 @@
 
 #include "ipp4r.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 // -------------------------------------------------------------------------- //
 // IppiSize
 // -------------------------------------------------------------------------- //
@@ -106,8 +111,9 @@ VALUE rb_Point_initialize(int argc, VALUE *argv, VALUE self);
  */
 VALUE rb_Point_to_s(VALUE self);
 
-
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

@@ -4,6 +4,10 @@
 #include <ruby.h>
 #include "ipp4r_fwd.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct _Matrix {
   int isMask;       /**< char or float? */
   void* data;       /**< data */
@@ -13,5 +17,9 @@ struct _Matrix {
 Matrix* matrix_new(VALUE r_matrix, int isMask);
 
 void matrix_destroy(Matrix* c_matrix);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

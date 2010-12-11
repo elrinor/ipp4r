@@ -30,7 +30,9 @@ extern "C" {
 // -------------------------------------------------------------------------- //
 // Config
 // -------------------------------------------------------------------------- //
-//#define USE_TRACE
+/** This one was added for debugging purposes only, you'll never need it (at least I hope so) */
+// #define USE_TRACE
+
 
 // -------------------------------------------------------------------------- //
 // Debug facilities
