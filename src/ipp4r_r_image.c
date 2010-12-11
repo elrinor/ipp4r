@@ -355,7 +355,7 @@ VALUE rb_Image_ref_eq(VALUE self, VALUE x, VALUE y, VALUE color) {
 // -------------------------------------------------------------------------- //
 // rb_Image_fill_bang
 // -------------------------------------------------------------------------- //
-VALUE rb_Image_fill_bang(VALUE self, VALUE rb_color) {
+TRACE_FUNC(VALUE, rb_Image_fill_bang, (VALUE self, VALUE rb_color)) {
   Color color;
 
   R2C_COLOR(&color, rb_color);
@@ -363,13 +363,13 @@ VALUE rb_Image_fill_bang(VALUE self, VALUE rb_color) {
   raise_on_error(image_fill(Data_Get_Struct_Ret(self, Image), &color));
 
   return self;
-}
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //
 // rb_Image_fill
 // -------------------------------------------------------------------------- //
-VALUE rb_Image_fill(VALUE self, VALUE color) {
+TRACE_FUNC(VALUE, rb_Image_fill, (VALUE self, VALUE color)) {
   VALUE r_image;
 
   r_image = rb_funcall(self, rb_ID_clone, 0);
@@ -378,7 +378,7 @@ VALUE rb_Image_fill(VALUE self, VALUE color) {
   rb_gc_unregister_address(&r_image);
 
   return r_image;
-}
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //

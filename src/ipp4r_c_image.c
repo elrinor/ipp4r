@@ -686,7 +686,7 @@ TRACE_FUNC(int, image_convert_channels_copy, (Image* image, Image** dst, IppChan
           status = ARX_JOIN_6(ippiDup_, D, _, C, NEW_C, R) (PWPWI(image, *dst)), \
           ARX_IF(CC_IN_CCA((C, NEW_C), (2, ((C1, C3), (C1, AC4)))),             \
             {                                                                   \
-              D_CTYPE(D)* pSrc[4];                                              \
+              const D_CTYPE(D)* pSrc[4];                                        \
               pSrc[0] = pSrc[1] = pSrc[2] = pSrc[3] = (D_CTYPE(D)*) PIXELS(image); \
               status = ARX_JOIN_7(ippiCopy_, D, _, P, C_CNUMB(NEW_C), IF_C_EQ_C(NEW_C, AC4, C4, NEW_C), R) (pSrc, WSTEP(image), PIXELS(*dst), WSTEP(*dst), IPPISIZE(*dst)); \
               IF_C_EQ_C(NEW_C, AC4,                                             \
@@ -1261,12 +1261,18 @@ TRACE_FUNC(int, image_draw_rotated, (Image* image, Image* src, double angle, dou
   Image* source;
   IppiRect srcRoi, dstRoi;
 
+  TRACE(("0"));
+
   assert(image != NULL && src != NULL);
+
+  TRACE(("1"));
 
   if(METATYPE(image) == METATYPE(src))
     source = src;
   else if(IS_ERROR(status = image_convert_copy(src, &source, METATYPE(image))))
     TRACE_RETURN(status);
+
+  TRACE(("2"));
 
   srcRoi.x = srcRoi.y = 0;
   srcRoi.height = HEIGHT(source);
@@ -1277,7 +1283,9 @@ TRACE_FUNC(int, image_draw_rotated, (Image* image, Image* src, double angle, dou
   dstRoi.width = WIDTH(image);
 
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiRotate_, R, (PIXELS(source), IPPISIZE(source), WSTEP(source), srcRoi, PIXELS(image), WSTEP(image), dstRoi, angle, xShift, yShift, IPPI_INTER_CUBIC | IPPI_SMOOTH_EDGE)), Unreachable(), ippStsBadArgErr);
-  
+
+  TRACE(("3"));
+
   if(source != src)
     image_destroy(source);
   TRACE_RETURN(status);

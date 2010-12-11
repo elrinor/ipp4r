@@ -33,19 +33,24 @@ extern "C" {
 /** This one was added for debugging purposes only, you'll never need it (at least I hope so) */
 // #define USE_TRACE
 
-/** Use OpenCV for saving / loading? If not defined, only 24-bit bmp files will be dupported */
+/** Use OpenCV for saving / loading? If not defined, only 24-bit bmp files will be supported */
 // #define USE_OPENCV
+
 
 // -------------------------------------------------------------------------- //
 // Debug facilities
 // -------------------------------------------------------------------------- //
 #define Unreachable() assert(!"Unreachable")
 
+#if defined(_MSC_VER) || defined(__ICL)
+#  define __func__ __FUNCTION__
+#endif
+
 #ifdef USE_TRACE
 #  define IS_VOID_HELPER_void 
 #  define IS_VOID(v) ARX_IS_EMPTY(ARX_JOIN(IS_VOID_HELPER_, v))
 #  define TRACE_HELPER_TAIL() for(trace_i = trace_depth; trace_i > 0; trace_i--) printf("-")
-#  define TRACE_HELPER_BORDER(C) TRACE_HELPER_TAIL(); printf(C __FUNCTION__"\n")
+#  define TRACE_HELPER_BORDER(C) TRACE_HELPER_TAIL(); printf(C); printf(__func__); printf("\n")
 #  define TRACE_FUNC(RETURN_TYPE, FUNC_NAME, ARGS)                              \
   RETURN_TYPE FUNC_NAME ARGS { int trace_i; ARX_IF(IS_VOID(RETURN_TYPE), ARX_EMPTY(), RETURN_TYPE trace_retval;) TRACE_HELPER_BORDER(">"); trace_depth++;
 #  define TRACE_END trace_depth--; TRACE_HELPER_BORDER("<"); }
