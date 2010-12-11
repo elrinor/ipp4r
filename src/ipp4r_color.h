@@ -17,9 +17,9 @@ extern "C" {
  */
 struct _Color {
   union {
-    Ipp8u as_array[4];
+    Ipp32f as_array[4];
     struct {
-      Ipp8u b, g, r, a;
+      Ipp32f b, g, r, a;
     };
   };
 };
@@ -40,11 +40,16 @@ struct _ColorRef {
 // Color C interface
 // -------------------------------------------------------------------------- //
 /**
- * Allocates memory for Color and initializes it.
- *  
+ * Allocates memory for Color and initializes it. <br/>
+ * Note that r, g, b and a parameters must be in [0, 1] range.
+ *
+ * @param r red color component
+ * @param g green color component
+ * @param b blue color component
+ * @param a alpha color component
  * @returns newly allocated Color, or throws a ruby exception in case of an error.
  */
-Color* color_new(Ipp8u r, Ipp8u g, Ipp8u b, Ipp8u a);
+Color* color_new(Ipp32f r, Ipp32f g, Ipp32f b, Ipp32f a);
 
 
 /**
@@ -56,7 +61,7 @@ void color_destroy(Color* color);
 /**
  * @returns color value in grayscale
  */
-Ipp8u color_gray(Color* color);
+Ipp32f color_gray(Color* color);
 
 
 // -------------------------------------------------------------------------- //
@@ -71,8 +76,8 @@ VALUE rb_Color_alloc(VALUE klass);
 /**
  * Method: 
  * <ul>
- * <li> <tt>Ipp::Color#initialize(red, green, blue, alpha = 255)</tt>
- * <li> <tt>Ipp::Color#initialize(gray = 0)</tt>
+ * <li> <tt>Ipp::Color#initialize(red, green, blue, alpha = 1.0)</tt>
+ * <li> <tt>Ipp::Color#initialize(gray = 0.0)</tt>
  * </ul>
  *         
  * Initializes a new Color object.
@@ -150,6 +155,7 @@ VALUE rb_ColorRef_check_raise(VALUE self);
  * 
  * "operator=" for ColorRef.
  * other param must be of Color duck type.
+ * 
  * @returns self
  */
 VALUE rb_ColorRef_set(VALUE self, VALUE other);

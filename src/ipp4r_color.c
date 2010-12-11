@@ -6,7 +6,7 @@
 // Supplementary macros
 // -------------------------------------------------------------------------- //
 #define COLOR_TO_GRAYSCALE(R, G, B)                                             \
-  ((Ipp8u) (0.299f * (R) + 0.587f * (G) + 0.114f * (B)))
+  ((Ipp32f) (0.299f * (R) + 0.587f * (G) + 0.114f * (B)))
 
 
 // -------------------------------------------------------------------------- //
@@ -34,7 +34,7 @@ static Color* rb_ColorRef_getter(VALUE self, Color* color) {
 static void rb_ColorRef_setter(VALUE self, Color* color) {
   ColorRef* colorref;
 
-  /* setter is always called after getter => we don't need to preform boundary checks */
+  /* setter is always called after getter => we don't need to perform boundary checks */
   /* rb_ColorRef_check_raise(self); */
 
   colorref = Data_Get_Struct_Ret(self, ColorRef);
@@ -46,7 +46,7 @@ static void rb_ColorRef_setter(VALUE self, Color* color) {
 // -------------------------------------------------------------------------- //
 // color_new
 // -------------------------------------------------------------------------- //
-Color* color_new(Ipp8u r, Ipp8u g, Ipp8u b, Ipp8u a) {
+Color* color_new(Ipp32f r, Ipp32f g, Ipp32f b, Ipp32f a) {
   Color* color;
   color = ALLOC(Color); // ALLOC always succeeds or throws an exception
   color->r = r;
@@ -69,7 +69,7 @@ void color_destroy(Color* color) {
 // -------------------------------------------------------------------------- //
 // color_gray
 // -------------------------------------------------------------------------- //
-Ipp8u color_gray(Color* color) {
+Ipp32f color_gray(Color* color) {
   return COLOR_TO_GRAYSCALE(color->r, color->g, color->b);
 }
 
@@ -88,23 +88,23 @@ VALUE rb_Color_alloc(VALUE klass) {
 // rb_Color_initialize
 // -------------------------------------------------------------------------- //
 VALUE rb_Color_initialize(int argc, VALUE *argv, VALUE self) {
-  Ipp8u r, g, b, a;
+  Ipp32f r, g, b, a;
   Color* color;
 
-  a = 0xFF;
+  a = 1.0f;
   switch (argc) {
   case 4:
-    a = (Ipp8u) NUM2INT(argv[3]);
+    a = (Ipp32f) R2C_DBL(argv[3]);
   case 3:
-    r = (Ipp8u) NUM2INT(argv[0]);
-    g = (Ipp8u) NUM2INT(argv[1]);
-    b = (Ipp8u) NUM2INT(argv[2]);
+    r = (Ipp32f) R2C_DBL(argv[0]);
+    g = (Ipp32f) R2C_DBL(argv[1]);
+    b = (Ipp32f) R2C_DBL(argv[2]);
     break;
   case 1:
-    r = g = b = (Ipp8u) NUM2INT(argv[0]);
+    r = g = b = (Ipp32f) R2C_DBL(argv[0]);
     break;
   case 0:
-    r = g = b = 0;
+    r = g = b = 0.0f;
     break;
   default:
     rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 0, 1, 3, or 4)", argc);
@@ -129,7 +129,11 @@ VALUE rb_Color_to_s(VALUE self) {
   Data_Get_Struct(self, Color, color);
 
   sprintf(buf, "#%02x%02x%02x%02x", 
-    R2C_INT(rb_funcall(self, rb_ID_r, 0)), R2C_INT(rb_funcall(self, rb_ID_g, 0)), R2C_INT(rb_funcall(self, rb_ID_b, 0)), R2C_INT(rb_funcall(self, rb_ID_a, 0)));
+    (int) (255 * R2C_DBL(rb_funcall(self, rb_ID_r, 0))), 
+    (int) (255 * R2C_DBL(rb_funcall(self, rb_ID_g, 0))), 
+    (int) (255 * R2C_DBL(rb_funcall(self, rb_ID_b, 0))), 
+    (int) (255 * R2C_DBL(rb_funcall(self, rb_ID_a, 0)))
+  );
   return rb_str_new2(buf);
 }
 
@@ -138,7 +142,7 @@ VALUE rb_Color_to_s(VALUE self) {
 // rb_Color_gray
 // -------------------------------------------------------------------------- //
 VALUE rb_Color_gray(VALUE self) {
-  return C2R_INT(COLOR_TO_GRAYSCALE(R2C_INT(rb_funcall(self, rb_ID_r, 0)), R2C_INT(rb_funcall(self, rb_ID_g, 0)), R2C_INT(rb_funcall(self, rb_ID_b, 0))));
+  return C2R_DBL(COLOR_TO_GRAYSCALE(R2C_DBL(rb_funcall(self, rb_ID_r, 0)), R2C_DBL(rb_funcall(self, rb_ID_g, 0)), R2C_DBL(rb_funcall(self, rb_ID_b, 0))));
 }
 
 // -------------------------------------------------------------------------- //
@@ -202,12 +206,12 @@ VALUE rb_ColorRef_set(VALUE self, VALUE other) {
 
 
 // -------------------------------------------------------------------------- //
-// rb_ColorRef_r/g/b/a
+// rb_ColorRef_[r|g|b|a]
 // -------------------------------------------------------------------------- //
 #define DEFINE_COLORREF_GETTER(SUFFIX)                                          \
 VALUE rb_ColorRef_ ## SUFFIX(VALUE self) {                                      \
   Color color;                                                                  \
-  return C2R_INT(rb_ColorRef_getter(self, &color)->SUFFIX);                     \
+  return C2R_DBL(rb_ColorRef_getter(self, &color)->SUFFIX);                     \
 }
 
 DEFINE_COLORREF_GETTER(r)
@@ -217,12 +221,12 @@ DEFINE_COLORREF_GETTER(a)
 
 
 // -------------------------------------------------------------------------- //
-// rb_ColorRef_r/g/b/a_eq
+// rb_ColorRef_[r|g|b|a]_eq
 // -------------------------------------------------------------------------- //
 #define DEFINE_COLORREF_SETTER(SUFFIX)                                          \
 VALUE rb_ColorRef_ ## SUFFIX ## _eq(VALUE self, VALUE val) {                    \
   Color color;                                                                  \
-  rb_ColorRef_getter(self, &color)->SUFFIX = (Ipp8u) R2C_INT(val);              \
+  rb_ColorRef_getter(self, &color)->SUFFIX = (Ipp32f) R2C_DBL(val);             \
   rb_ColorRef_setter(self, &color);                                             \
   return val;                                                                   \
 }

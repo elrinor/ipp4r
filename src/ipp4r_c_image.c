@@ -162,7 +162,8 @@ Image* image_clone(Image* image, int* pStatus) {
   newImage = image_new(WIDTH(image), HEIGHT(image), CHANNELS(image));
 
   if(newImage != NULL) {
-    IPPMETACALL(CHANNELS(image), status, ippiCopy_8u_, R, (3, (C1, C3, AC4)), (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image)), ippStsBadArgErr; Unreachable());
+//    IPPMETACALL(CHANNELS(image), status, ippiCopy_8u_, R, (3, (C1, C3, AC4)), (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image)), ippStsBadArgErr; Unreachable());
+    IPPMETACALL(CHANNELS(image), status, SUPPORTED_CHANNELS, IPPMETAFUNC, (ippiCopy_8u_, R, (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image))), ippStsBadArgErr; Unreachable());
     if(IS_ERROR(status)) {
       image_destroy(newImage);
       newImage = NULL;
@@ -385,7 +386,7 @@ int image_get_pixel(Image* image, int x, int y, Color* color) {
 
   p = PIXEL_AT(image, x, y);
 
-  color->a = 0xFF;
+  color->a = 1.0f;
   switch(CHANNELS(image)) {
   case ippC1:
     color->r = color->g = color->b = *p;

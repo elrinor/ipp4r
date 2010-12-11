@@ -1,33 +1,12 @@
-#ifndef __IPP4R_MACROS_H__
-#define __IPP4R_MACROS_H__
+#ifndef __IPP4r_MACRO_H__
+#define __IPP4r_MACRO_H__
 
-#include <ruby.h>
-#include "arx/Preprocessor.h"
 
 // -------------------------------------------------------------------------- //
 // Debug
 // -------------------------------------------------------------------------- //
 #define DBG() printf("%s", "#####"__FUNCTION__ ":" ARX_STRINGIZE(__LINE__) "!\n");
 #define Unreachable() assert(!"Unreachable")
-
-// -------------------------------------------------------------------------- //
-// IPPMETACALL
-// -------------------------------------------------------------------------- //
-#define IPPMETACALL_A(CRITERIA, TARGET, FUNC_PREFIX, FUNC_SUFFIX, FUNC_ARRAY, CRITERIA_ARRAY, PARAMS, DEFAULTVALUE) \
-  STATIC_ASSERT((ARX_ARRAY_SIZE(FUNC_ARRAY) == ARX_ARRAY_SIZE(CRITERIA_ARRAY))); \
-  switch(CRITERIA) {                                                            \
-  ARX_ARRAY_FOREACH(ARX_INDEX_ARRAY(ARX_ARRAY_SIZE(FUNC_ARRAY)), IPPMETACALL_I, (6, (FUNC_PREFIX, FUNC_SUFFIX, TARGET, PARAMS, FUNC_ARRAY, CRITERIA_ARRAY))) \
-  default:                                                                      \
-    TARGET = DEFAULTVALUE;                                                      \
-  }
-
-#define IPPMETACALL(CRITERIA, TARGET, FUNC_PREFIX, FUNC_SUFFIX, FUNC_ARRAY, PARAMS, DEFAULTVALUE) \
-  IPPMETACALL_A(CRITERIA, TARGET, FUNC_PREFIX, FUNC_SUFFIX, FUNC_ARRAY, FUNC_ARRAY, PARAMS, DEFAULTVALUE)
-
-#define IPPMETACALL_I(INDEX, ARGS)                                              \
-  case ARX_JOIN(ipp, ARX_ARRAY_ELEM(INDEX, ARX_ARRAY_ELEM(5, ARGS))):           \
-    ARX_ARRAY_ELEM(2, ARGS) = ARX_JOIN(ARX_ARRAY_ELEM(0, ARGS), ARX_JOIN(ARX_ARRAY_ELEM(INDEX, ARX_ARRAY_ELEM(4, ARGS)), ARX_ARRAY_ELEM(1, ARGS))) ARX_ARRAY_ELEM(3, ARGS); \
-    break;
 
 
 // -------------------------------------------------------------------------- //
@@ -120,7 +99,7 @@ VALUE rb_ ## CLASS ## _ ## ATTR ## _eq(VALUE self, VALUE val) {                 
 
 
 // -------------------------------------------------------------------------- //
-// Absolutely necessary macros
+// Necessary macros
 // -------------------------------------------------------------------------- //
 #ifdef FALSE
 #  undef FALSE
@@ -131,6 +110,5 @@ VALUE rb_ ## CLASS ## _ ## ATTR ## _eq(VALUE self, VALUE val) {                 
 #  undef TRUE
 #endif
 #define TRUE 1
-
 
 #endif
