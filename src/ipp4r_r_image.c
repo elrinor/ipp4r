@@ -236,7 +236,7 @@ VALUE rb_Image_add_rand_uniform(VALUE self, VALUE lo, VALUE hi) {
 VALUE rb_Image_width(VALUE self) {
   Image* image;
 
-  Data_Get_Struct(self, Image, image);
+  image = Data_Get_Struct_Ret(self, Image);
 
   return C2R_INT(image_width(image));
 }
@@ -248,10 +248,23 @@ VALUE rb_Image_width(VALUE self) {
 VALUE rb_Image_height(VALUE self) {
   Image* image;
 
-  Data_Get_Struct(self, Image, image);
+  image = Data_Get_Struct_Ret(self, Image);
 
   return C2R_INT(image_height(image));
 }
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_size
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_size(VALUE self) {
+  Image* image;
+
+  image = Data_Get_Struct_Ret(self, Image);
+
+  return WRAP_SIZE(size_new(image_width(image), image_height(image)));
+}
+
 
 
 // -------------------------------------------------------------------------- //
@@ -705,7 +718,7 @@ VALUE rb_Image_filter(int argc, VALUE* argv, VALUE self) {
   Image* newImage;
 
   rb_Image_filter_matrix_anchor_parseargs(argc, argv, FALSE, &kernel, &anchor);
-  status = image_filter(Data_Get_Struct_Ret(self, Image), &newImage, kernel, anchor); /* this one won't throw */
+  status = image_filter_copy(Data_Get_Struct_Ret(self, Image), &newImage, kernel, anchor); /* this one won't throw */
   matrix_destroy(kernel);
   raise_on_error(status);
   return image_wrap(newImage);
@@ -738,8 +751,178 @@ VALUE rb_Image_border(VALUE self) {
 }
 
 
+// -------------------------------------------------------------------------- //
+// rb_Image_draw_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_draw_bang(int argc, VALUE* argv, VALUE self) {
+  Image* src;
+  IppiPoint pos;
+
+  switch(argc) {
+  case 3:
+    pos.x = R2C_INT(argv[1]);
+    pos.y = R2C_INT(argv[2]);
+    break;
+  case 2:
+    pos = *Data_Get_Struct_Ret(argv[1], IppiPoint);
+    break;
+  case 1:
+    pos.x = pos.y = 0;
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1, 2 or 3)", argc);
+    break;
+  }
+  src = Data_Get_Struct_Ret(argv[0], Image);
+
+  raise_on_error(image_draw(Data_Get_Struct_Ret(self, Image), src, pos));
+
+  return self;
+}
 
 
+// -------------------------------------------------------------------------- //
+// rb_Image_draw
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_draw(int argc, VALUE* argv, VALUE self) {
+  VALUE r_image;
+
+  r_image = rb_funcall(self, rb_ID_clone, 0);
+  rb_gc_register_address(&r_image); /* tell ruby gc this object is in use */
+  rb_Image_draw_bang(argc, argv, r_image);
+  rb_gc_unregister_address(&r_image);
+
+  return r_image;
+}
 
 
+// -------------------------------------------------------------------------- //
+// rb_Image_draw_rotated_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_draw_rotated_bang(int argc, VALUE* argv, VALUE self) {
+  Image* src;
+  double angle, xShift, yShift;
 
+  switch(argc) {
+  case 4:
+    xShift = R2C_DBL(argv[2]);
+    yShift = R2C_DBL(argv[3]);
+    break;
+  case 2:
+    xShift = yShift = 0;
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1, 2 or 3)", argc);
+    break;
+  }
+  angle = R2C_DBL(argv[1]);
+  src = Data_Get_Struct_Ret(argv[0], Image);
+
+  raise_on_error(image_draw_rotated(Data_Get_Struct_Ret(self, Image), src, angle, xShift, yShift));
+
+  return self;
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_draw_rotated
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_draw_rotated(int argc, VALUE* argv, VALUE self) {
+  VALUE r_image;
+
+  r_image = rb_funcall(self, rb_ID_clone, 0);
+  rb_gc_register_address(&r_image); /* tell ruby gc this object is in use */
+  rb_Image_draw_rotated_bang(argc, argv, r_image);
+  rb_gc_unregister_address(&r_image);
+
+  return r_image;
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_resize
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_resize(int argc, VALUE* argv, VALUE self) {
+  int status;
+  IppiSize newSize;
+  Image* newImage;
+
+  switch(argc) {
+  case 1:
+    newSize = *Data_Get_Struct_Ret(argv[0], IppiSize);
+    break;
+  case 2:
+    newSize.width = R2C_INT(argv[0]);
+    newSize.height = R2C_INT(argv[1]);
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1 or 2)", argc);
+    break;
+  }
+
+  raise_on_error(image_resize_copy(Data_Get_Struct_Ret(self, Image), &newImage, newSize));
+  return image_wrap(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_resize_factor
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_resize_factor(int argc, VALUE* argv, VALUE self) {
+  double xFactor, yFactor;
+  
+  switch(argc) {
+  case 2:
+    xFactor = R2C_DBL(argv[0]);
+    yFactor = R2C_DBL(argv[1]);
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 2)", argc);
+    break;
+  }
+
+  return rb_funcall(self, rb_ID_resize, 2, C2R_INT((int) (R2C_DBL(rb_funcall(self, rb_ID_width, 0)) * xFactor)), C2R_INT((int) (R2C_DBL(rb_funcall(self, rb_ID_height, 0)) * yFactor)));
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_mirror_parseargs
+// -------------------------------------------------------------------------- //
+static void rb_Image_mirror_parseargs(int argc, VALUE* argv, IppiAxis* axis) {
+  switch(argc) {
+  case 1:
+    *axis = R2C_ENUM(argv[0], rb_Axis);
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1)", argc);
+    break;
+  }
+}
+
+// -------------------------------------------------------------------------- //
+// rb_Image_mirror
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_mirror(int argc, VALUE* argv, VALUE self) {
+  IppiAxis axis;
+  Image* newImage;
+ 
+  rb_Image_mirror_parseargs(argc, argv, &axis);
+
+  raise_on_error(image_mirror_copy(Data_Get_Struct_Ret(self, Image), &newImage, axis));
+
+  return image_wrap(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_mirror_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_mirror_bang(int argc, VALUE* argv, VALUE self) {
+  IppiAxis axis;
+
+  rb_Image_mirror_parseargs(argc, argv, &axis);
+
+  raise_on_error(image_mirror(Data_Get_Struct_Ret(self, Image), axis));
+
+  return self;
+}

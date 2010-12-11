@@ -150,6 +150,16 @@ VALUE rb_Image_height(VALUE self);
 /**
  * Method:
  * <ul>
+ * <li> <tt>Ipp::Image#size</tt>
+ * </ul>
+ * 
+ * @returns image Size
+ */VALUE rb_Image_size(VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
  * <li> <tt>Ipp::Image#channels</tt>
  * </ul>
  * 
@@ -480,6 +490,105 @@ VALUE rb_Image_ensure_border_bang(VALUE self, VALUE size);
  * @returns available image border
  */
 VALUE rb_Image_border(VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#draw(Image src, Point pos = (0, 0)) </tt>
+ * <li> <tt>Ipp::Image#draw(Image src, posX, posY) </tt> 
+ * </ul>
+ *
+ * Draws the given image src on a copy of the current image
+ * @returns a newly created image with src drawn on it
+ */
+VALUE rb_Image_draw(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#draw!(Image src, Point pos = (0, 0)) </tt>
+ * <li> <tt>Ipp::Image#draw!(Image src, posX, posY) </tt> 
+ * </ul>
+ *
+ * Draws the given image src on the current image
+ * @returns self
+ */
+VALUE rb_Image_draw_bang(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#draw_rotated!(Image src, angle, xShift, yShift) </tt> 
+ * <li> <tt>Ipp::Image#draw_rotated!(Image src, angle) </tt> 
+ * </ul>
+ *
+ * @returns self
+ */
+VALUE rb_Image_draw_rotated_bang(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#draw_rotated(Image src, angle, xShift, yShift) </tt> 
+ * <li> <tt>Ipp::Image#draw_rotated(Image src, angle) </tt> 
+ * </ul>
+ *
+ * @returns newly created image
+ */
+VALUE rb_Image_draw_rotated(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#resize(Size newSize) </tt>
+ * <li> <tt>Ipp::Image#resize(newX, newY) </tt> 
+ * </ul>
+ *
+ * Resizes the given image
+ * @returns a newly created resized image
+ */
+VALUE rb_Image_resize(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#resize_factor(xFactor, yFactor) </tt>
+ * </ul>
+ *
+ * Resizes the given image
+ * @returns a newly created resized image
+ */
+VALUE rb_Image_resize_factor(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#mirror(Axis axis) </tt>
+ * </ul>
+ *
+ * Mirrors the given image
+ * @returns a newly created mirrored image
+ */
+VALUE rb_Image_mirror(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#mirror!(Axis axis) </tt>
+ * </ul>
+ *
+ * Mirrors the given image
+ * @returns self
+ */
+VALUE rb_Image_mirror_bang(int argc, VALUE* argv, VALUE self);
 
 
 

@@ -1032,9 +1032,9 @@ TRACE_FUNC(int, image_filter_gauss_copy, (Image* image, Image** dst, IppiMaskSiz
 
 
 // -------------------------------------------------------------------------- //
-// image_filter
+// image_filter_copy
 // -------------------------------------------------------------------------- //
-TRACE_FUNC(int, image_filter, (Image* image, Image** dst, Matrix* kernel, IppiPoint anchor)) {
+TRACE_FUNC(int, image_filter_copy, (Image* image, Image** dst, Matrix* kernel, IppiPoint anchor)) {
   int status;
 
   assert(image != NULL && dst != NULL && kernel != NULL);
@@ -1053,8 +1053,132 @@ TRACE_FUNC(int, image_filter, (Image* image, Image** dst, Matrix* kernel, IppiPo
     image_destroy(*dst);
 
   TRACE_RETURN(status);
-}
+} TRACE_END
 
+
+// -------------------------------------------------------------------------- //
+// image_draw
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_draw, (Image* image, Image* src, IppiPoint pos)) {
+  int status;
+  Image* source;
+  IppiSize roi;
+  IppiPoint shrink;
+
+  assert(image != NULL && src != NULL);
+
+  if(-pos.x >= WIDTH(src) || -pos.y >= HEIGHT(src) || pos.x >= WIDTH(image) || pos.y >= HEIGHT(image))
+    TRACE_RETURN(ippStsNoErr);
+
+  shrink = ippi_point(pos.x < 0 ? -pos.x : 0, pos.y < 0 ? -pos.y : 0);
+  pos = ippi_point(max(0, pos.x), max(0, pos.y));
+  roi = ippi_size(min(WIDTH(src) - shrink.x, WIDTH(image) - pos.x), min(HEIGHT(src) - shrink.y, HEIGHT(image) - pos.y));
+
+  if(METATYPE(image) == METATYPE(src))
+    source = src;
+  else if(IS_ERROR(status = image_convert_copy(src, &source, METATYPE(image))))
+    TRACE_RETURN(status);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiCopy_, R, (PIXEL_AT(source, shrink.x, shrink.y), WSTEP(source), PIXEL_AT(image, pos.x, pos.y), WSTEP(image), roi)), Unreachable(), ippStsBadArgErr);
+
+  if(source != src)
+    image_destroy(source);
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_draw_rotated
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_draw_rotated, (Image* image, Image* src, double angle, double xShift, double yShift)) {
+  int status;
+  Image* source;
+  IppiRect srcRoi, dstRoi;
+
+  assert(image != NULL && src != NULL);
+
+  if(METATYPE(image) == METATYPE(src))
+    source = src;
+  else if(IS_ERROR(status = image_convert_copy(src, &source, METATYPE(image))))
+    TRACE_RETURN(status);
+
+  srcRoi.x = srcRoi.y = 0;
+  srcRoi.height = HEIGHT(source);
+  srcRoi.width = WIDTH(source);
+
+  dstRoi.x = dstRoi.y = 0;
+  dstRoi.height = HEIGHT(image);
+  dstRoi.width = WIDTH(image);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiRotate_, R, (PIXELS(source), IPPISIZE(source), WSTEP(source), srcRoi, PIXELS(image), WSTEP(image), dstRoi, angle, xShift, yShift, IPPI_INTER_CUBIC | IPPI_SMOOTH_EDGE)), Unreachable(), ippStsBadArgErr);
+  
+  if(source != src)
+    image_destroy(source);
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+
+// -------------------------------------------------------------------------- //
+// image_resize_copy
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_resize_copy, (Image* image, Image** dst, IppiSize newSize)) {
+  int status;
+  IppiRect srcRoi;
+
+  assert(image != NULL && dst != NULL);
+
+  if(IS_ERROR(status = image_new(dst, newSize.width, newSize.height, METATYPE(image), 0)))
+    TRACE_RETURN(status);
+
+  srcRoi.x = srcRoi.y = 0;
+  srcRoi.height = HEIGHT(image);
+  srcRoi.width = WIDTH(image);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiResize_, R, (PIXELS(image), IPPISIZE(image), WSTEP(image), srcRoi, PWI(*dst), (double) WIDTH(*dst) / WIDTH(image), (double) HEIGHT(*dst) / HEIGHT(image), IPPI_INTER_CUBIC)), Unreachable(), ippStsBadArgErr);
+  if(IS_ERROR(status))
+    image_destroy(*dst);
+
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_mirror
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_mirror, (Image* image, IppiAxis axis)) {
+  int status;
+
+  assert(image != NULL);
+
+#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiMirror_, M_REPLACE_D_IF_D(M, 32f, 32s), IR) (PWI(image), axis)
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC
+
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_mirror_copy
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_mirror_copy, (Image* image, Image** dst, IppiAxis axis)) {
+  int status;
+
+  assert(image != NULL && dst != NULL);
+
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
+    TRACE_RETURN(status);
+
+#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiMirror_, M_REPLACE_D_IF_D(M, 32f, 32s), R) (PWPWI(image, *dst), axis)
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC
+
+  if(IS_ERROR(status))
+    image_destroy(*dst);
+
+  TRACE_RETURN(status);
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //

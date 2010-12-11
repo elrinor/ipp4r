@@ -88,7 +88,7 @@ IPP4R_EXTERN VALUE rb_MaskSize;
 // Frequently used IDs
 // -------------------------------------------------------------------------- //
 #define IPP4R_IDS                                                               \
-  (13, (                                                                        \
+  (16, (                                                                        \
     (spaceship,            "<=>"),                                              \
     (aref,                 "[]"),                                               \
     (enumerators,          NULL),                                               \
@@ -101,7 +101,10 @@ IPP4R_EXTERN VALUE rb_MaskSize;
     (private_class_method, NULL),                                               \
     (clone,                NULL),                                               \
     (row_size,             NULL),                                               \
-    (column_size,          NULL)                                                \
+    (column_size,          NULL),                                               \
+    (width,                NULL),                                               \
+    (height,               NULL),                                               \
+    (resize,               NULL)                                                \
   ))
 
 #define IPP4R_ID_DECL_I(NAMES, ARG)                                             \

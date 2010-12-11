@@ -12,10 +12,22 @@ IppiSize ippi_size(int width, int height) {
 
 
 // -------------------------------------------------------------------------- //
+// size_new
+// -------------------------------------------------------------------------- //
+IppiSize* size_new(int width, int height) {
+  IppiSize* result;
+  result = (IppiSize*) malloc(sizeof(IppiSize));
+  result->height = height;
+  result->width = width;
+  return result;
+}
+
+
+// -------------------------------------------------------------------------- //
 // rb_Size_alloc
 // -------------------------------------------------------------------------- //
 VALUE rb_Size_alloc(VALUE klass) {
-  return Data_Wrap_Struct(klass, NULL, assert_not_null_and_free, NULL);
+  return WRAP_SIZE_A(NULL, klass);
 }
 
 

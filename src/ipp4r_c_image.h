@@ -501,7 +501,63 @@ int image_filter_gauss_copy(Image* image, Image** dst, IppiMaskSize maskSize);
  * @param anchor anchor cell specifying the kernel alignment with respect to the position of the input pixel
  * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-int image_filter(Image* image, Image** dst, Matrix* kernel, IppiPoint anchor);
+int image_filter_copy(Image* image, Image** dst, Matrix* kernel, IppiPoint anchor);
+
+
+/**
+ * Draws one image on another.
+ *
+ * @param image destination image
+ * @param src source image
+ * @param pos source image position in destination image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_draw(Image* image, Image* src, IppiPoint pos);
+
+
+/**
+ * Rotates an image around the origin (0,0), shifts it, and draws on another image.
+ *
+ * @param image destination image
+ * @param src source image
+ * @param angle rotation angle
+ * @param xShift shift along horizontal axis to perform after rotation
+ * @param yShift shift along vertical axis to perform after rotation
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_draw_rotated(Image* image, Image* src, double angle, double xShift, double yShift);
+
+
+/**
+ * Resizes the given image.
+ *
+ * @param image source image
+ * @param dst destination image
+ * @param newSize new size of an image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_resize_copy(Image* image, Image** dst, IppiSize newSize);
+
+
+/**
+ * Mirrors the given image.
+ *
+ * @param image source image
+ * @param axis specifies the axis to mirror the image about
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_mirror(Image* image, IppiAxis axis);
+
+
+/**
+ * Mirrors the given image.
+ *
+ * @param image source image
+ * @param dst destination image
+ * @param axis specifies the axis to mirror the image about
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_mirror_copy(Image* image, Image** dst, IppiAxis axis);
 
 
 /**

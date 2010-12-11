@@ -125,6 +125,7 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "convert", rb_Image_convert, 1);
   rb_define_method(rb_Image, "width", rb_Image_width, 0);
   rb_define_method(rb_Image, "height", rb_Image_height, 0);
+  rb_define_method(rb_Image, "size", rb_Image_size, 0);
   rb_define_method(rb_Image, "channels", rb_Image_channels, 0);
   rb_define_method(rb_Image, "metatype", rb_Image_metatype, 0);
   rb_define_method(rb_Image, "datatype", rb_Image_datatype, 0);
@@ -152,6 +153,14 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "filter_median", rb_Image_filter_median, -1);
   rb_define_method(rb_Image, "filter_gauss", rb_Image_filter_gauss, -1);
   rb_define_method(rb_Image, "filter", rb_Image_filter, -1);
+  rb_define_method(rb_Image, "draw!", rb_Image_draw_bang, -1);
+  rb_define_method(rb_Image, "draw", rb_Image_draw, -1);
+  rb_define_method(rb_Image, "draw_rotated!", rb_Image_draw_rotated_bang, -1);
+  rb_define_method(rb_Image, "draw_rotated", rb_Image_draw_rotated, -1);
+  rb_define_method(rb_Image, "resize", rb_Image_resize, -1);
+  rb_define_method(rb_Image, "resize_factor", rb_Image_resize_factor, -1);
+  rb_define_method(rb_Image, "mirror!", rb_Image_mirror_bang, -1);
+  rb_define_method(rb_Image, "mirror", rb_Image_mirror, -1);
 
   rb_Data = rb_define_class_under(rb_Image, "Data", rb_cObject);
 
