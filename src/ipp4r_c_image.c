@@ -18,6 +18,8 @@
 #define WSTEP(IMAGE) ((IMAGE)->data->wStep)
 #define IPPISIZE(IMAGE) (image_ippisize(IMAGE))
 #define SHARED(IMAGE) ((IMAGE)->data->shared)
+#define BORDER(IMAGE) ((IMAGE)->data->border)
+#define BORDER_AVAILABLE(IMAGE) (image_border_available(IMAGE))
 
 #define METATYPE(IMAGE) ((IMAGE)->data->metaType)
 #define CHANNELS(IMAGE) (metatype_channels(METATYPE(IMAGE)))
@@ -27,7 +29,7 @@
 // -------------------------------------------------------------------------- //
 // Helpers
 // -------------------------------------------------------------------------- //
-#define PWPWI(src, dst) PIXELS(src), WSTEP(src), PIXELS(dst), WSTEP(dst), IPPISIZE(dst)
+#define PWPWI(src, dst) PIXELS(src), WSTEP(src), PIXELS(dst), WSTEP(dst), IPPISIZE(src) /* IPPISIZE must be for src! see ippiman for Transpose function */
 #define PWI(src) PIXELS(src), WSTEP(src), IPPISIZE(src)
 
 
@@ -82,6 +84,68 @@ int image_width(Image* image) {
 
 
 // -------------------------------------------------------------------------- //
+// image_border_available
+// -------------------------------------------------------------------------- //
+int image_border_available(Image* image) {
+  assert(image != NULL);
+
+  if(!IS_SUBIMAGE(image))
+    return BORDER(image);
+  else {
+    int borderU = BORDER(image) + image->y;
+    int borderD = BORDER(image) + image->data->height - (image->y + image->height);
+    int borderL = BORDER(image) + image->x;
+    int borderR = BORDER(image) + image->data->width - (image->x + image->width);
+    return min(min(borderU, borderD), min(borderL, borderR));
+  }
+}
+
+
+// -------------------------------------------------------------------------- //
+// image_ensure_border
+// -------------------------------------------------------------------------- //
+int image_ensure_border(Image* image, int border) {
+  Image* result;
+  int status;
+  int borderAvailable;
+  int borderGrowth;
+  IppiSize dstRoi, srcRoi;
+
+  assert(image != NULL);
+  assert(border >= 0);
+
+  borderAvailable = BORDER_AVAILABLE(image);
+  if(borderAvailable >= border)
+    return ippStsNoErr;
+
+  borderGrowth = border - borderAvailable;
+  
+  result = image_new(image->data->width, image->data->height, METATYPE(image), BORDER(image) + borderGrowth);
+  if(result == NULL)
+    return ippStsNoMemErr;
+
+  srcRoi.width  = image->data->width   + 2 * BORDER(image);
+  srcRoi.height = image->data->height  + 2 * BORDER(image);
+  dstRoi.width  = result->data->width  + 2 * BORDER(result);
+  dstRoi.height = result->data->height + 2 * BORDER(result);
+                                                                /* TODO: test this hack */
+#define METAFUNC(M, ARG) ARX_JOIN_3(ippiCopyReplicateBorder_, M_REPLACE_D_IF_D(M, 32f, 32s), R) (image->data->buffer, WSTEP(image), srcRoi, result->data->buffer, WSTEP(result), dstRoi, borderGrowth, borderGrowth)
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC  
+
+  if(IS_ERROR(status)) {
+    image_destroy(result);
+    return status;
+  }
+
+  data_swap(image->data, result->data);
+  image_destroy(result);
+
+  return status;
+}
+
+
+// -------------------------------------------------------------------------- //
 // image_channels
 // -------------------------------------------------------------------------- //
 IppChannels image_channels(Image* image) {
@@ -114,18 +178,18 @@ IppMetaType image_metatype(Image* image) {
 // -------------------------------------------------------------------------- //
 // image_new
 // -------------------------------------------------------------------------- //
-TRACE_FUNC(Image*, image_new, (int width, int height, IppMetaType metaType)) {
+TRACE_FUNC(Image*, image_new, (int width, int height, IppMetaType metaType, int border)) {
   Image* image;
   Data* data;
 
-  assert(width > 0 && height > 0);
+  assert(width > 0 && height > 0 && border >= 0);
 
   /* See motivation for malloc usage in the source for data_new() function */
   image = (Image*) malloc(sizeof(Image));
   if(image == NULL)
     TRACE_RETURN(NULL);
 
-  data = data_new(width, height, metaType);
+  data = data_new(width, height, metaType, border);
   if(data == NULL) {
     free(image);
     TRACE_RETURN(NULL);
@@ -186,10 +250,12 @@ TRACE_FUNC(void, image_destroy, (Image* image)) {
 // image_mark
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(void, image_mark, (Image* image)) {
+  TRACE(("%08X", image));
   /* I check for NULL not because of paranoia.
    * The problem is that in rb_Image_alloc we initialize image with NULL, and subsequent call to rb_Image_initialize may trigger gc while our image is still NULL! */
   if(image != NULL) {
     assert(SHARED(image));
+    TRACE(("data=%08X", image->data));
     rb_gc_mark(image->rb_data);
   }
 } TRACE_END
@@ -230,8 +296,7 @@ TRACE_FUNC(Image*, image_clone, (Image* image, int* pStatus)) {
 
   assert(image != NULL);
 
-  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image));
-
+  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image) /* TODO */);
   if(result != NULL) {
     IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiCopy_, R, (PWPWI(image, result))), Unreachable(), ippStsBadArgErr);
     if(IS_ERROR(status)) {
@@ -249,12 +314,13 @@ TRACE_FUNC(Image*, image_clone, (Image* image, int* pStatus)) {
 // -------------------------------------------------------------------------- //
 // image_load
 // -------------------------------------------------------------------------- //
-TRACE_FUNC(Image*, image_load, (const char* fileName, int* pStatus)) {
+TRACE_FUNC(Image*, image_load, (const char* fileName, int border, int* pStatus)) {
   IplImage* iplImage;
   Image* image;
   int status;
 
   assert(fileName != NULL);
+  assert(border >= 0);
 
   iplImage = cvLoadImage(fileName, CV_LOAD_IMAGE_COLOR);
   if(iplImage == NULL) {
@@ -262,7 +328,7 @@ TRACE_FUNC(Image*, image_load, (const char* fileName, int* pStatus)) {
     goto end;
   }
 
-  image = image_new(iplImage->width, iplImage->height, ipp8u_C3); // always succeeds or throws
+  image = image_new(iplImage->width, iplImage->height, ipp8u_C3, border);
   if(image == NULL) {
     status = ippStsNoMemErr;
     goto error;
@@ -359,9 +425,7 @@ TRACE_FUNC(Image*, image_convert_datatype_copy, (Image* image, IppDataType dataT
   if(DATATYPE(image) == dataType)
     TRACE_RETURN(image_clone(image, pStatus));
 
-  TRACE(("%d %d %d", image, image->data, image->data->metaType));
-  result = image_new(WIDTH(image), HEIGHT(image), metatype_compose(dataType, CHANNELS(image)));
-  TRACE(("%d %d %d", image, image->data, image->data->metaType));
+  result = image_new(WIDTH(image), HEIGHT(image), metatype_compose(dataType, CHANNELS(image)), BORDER(image));
 
   if(result == NULL) {
     status = ippStsNoMemErr;
@@ -383,7 +447,7 @@ TRACE_FUNC(Image*, image_convert_datatype_copy, (Image* image, IppDataType dataT
             status = ARX_JOIN_5(ippiDivC_, NEW_D, _, IF_C_EQ_C(C, AC4, C4, C), IR) (scaleColor IF_C_EQ_C(C, C1, [0], ARX_EMPTY()), PWI(result)), \
           IF_DD_EQ_DD((D, NEW_D), (32f, 16u),                                   \
             {                                                                   \
-              Image* newImage = image_new(WIDTH(image), HEIGHT(image), METATYPE(image)); /* TODO */ \
+              Image* newImage = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), 0); \
               if(newImage != NULL) {                                            \
                 status = ARX_JOIN_5(ippiMulC_, D, _, IF_C_EQ_C(C, AC4, C4, C), R) (PIXELS(image), WSTEP(image), scaleColor IF_C_EQ_C(C, C1, [0], ARX_EMPTY()), PWI(newImage)); \
                 if(!IS_ERROR(status))                                           \
@@ -419,31 +483,6 @@ end:
 
 
 // -------------------------------------------------------------------------- //
-// image_convert_datatype
-// -------------------------------------------------------------------------- //
-TRACE_FUNC(int, image_convert_datatype, (Image* image, IppDataType dataType)) {
-  int status;
-  Image *result;
-
-  assert(image != NULL);
-
-  if(DATATYPE(image) == dataType)
-    TRACE_RETURN(ippStsNoErr);
-
-  result = image_convert_datatype_copy(image, dataType, &status);
-  if(IS_ERROR(status)) {
-    assert(result == NULL);
-    TRACE_RETURN(status);
-  }
-
-  data_swap(image->data, result->data);
-  image_destroy(result);
-
-  TRACE_RETURN(status);
-} TRACE_END
-
-
-// -------------------------------------------------------------------------- //
 // image_convert_channels_copy
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(Image*, image_convert_channels_copy, (Image* image, IppChannels channels, int* pStatus)) {
@@ -455,7 +494,7 @@ TRACE_FUNC(Image*, image_convert_channels_copy, (Image* image, IppChannels chann
   if(CHANNELS(image) == channels)
     TRACE_RETURN(image_clone(image, pStatus));
 
-  result = image_new(WIDTH(image), HEIGHT(image), metatype_compose(DATATYPE(image), channels));
+  result = image_new(WIDTH(image), HEIGHT(image), metatype_compose(DATATYPE(image), channels), BORDER(image));
   if(result == NULL) {
     status = ippStsNoMemErr;
     goto end;
@@ -512,37 +551,11 @@ end:
 
 
 // -------------------------------------------------------------------------- //
-// image_convert_datatype
-// -------------------------------------------------------------------------- //
-TRACE_FUNC(int, image_convert_channels, (Image* image, IppChannels channels)) {
-  int status;
-  Image *result;
-
-  assert(image != NULL);
-  assert(is_channels_supported(channels));
-
-  if(CHANNELS(image) == channels)
-    TRACE_RETURN(ippStsNoErr);
-
-  result = image_convert_channels_copy(image, channels, &status);
-  if(IS_ERROR(status)) {
-    assert(result == NULL);
-    TRACE_RETURN(status);
-  }
-
-  data_swap(image->data, result->data);
-  image_destroy(result);
-
-  TRACE_RETURN(status);
-} TRACE_END
-
-
-// -------------------------------------------------------------------------- //
 // image_convert_copy
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(Image*, image_convert_copy, (Image* image, IppMetaType metaType, int* pStatus)) {
   int status;
-  Image* result;
+  Image *result, *tmp;
   IppChannels channels;
   IppDataType dataType;
 
@@ -555,17 +568,17 @@ TRACE_FUNC(Image*, image_convert_copy, (Image* image, IppMetaType metaType, int*
   dataType = metatype_datatype(metaType);
 
   if(CHANNELS(image) != channels) {
-    result = image_convert_channels_copy(image, channels, &status);
+    tmp = image_convert_channels_copy(image, channels, &status);
     if(IS_ERROR(status)) {
-      assert(result == NULL);
+      assert(tmp == NULL);
       goto end;
     }
     
-    status = image_convert_datatype(result, dataType);
-    if(IS_ERROR(status)) {
-      image_destroy(result);
-      result = NULL;
-    }
+    if(DATATYPE(image) != dataType) {
+      result = image_convert_datatype_copy(tmp, dataType, &status);
+      image_destroy(tmp);
+    } else
+      result = tmp;
   } else
     TRACE_RETURN(image_convert_datatype_copy(image, dataType, pStatus));
 
@@ -573,32 +586,6 @@ end:
   if(pStatus != NULL)
     *pStatus = status;
   TRACE_RETURN(result);
-} TRACE_END
-
-
-// -------------------------------------------------------------------------- //
-// image_convert
-// -------------------------------------------------------------------------- //
-TRACE_FUNC(int, image_convert, (Image* image, IppMetaType metaType)) {
-  int status;
-  Image* result;
-
-  assert(image != NULL);
-  assert(is_metatype_supported(metaType));
-
-  if(METATYPE(image) == metaType)
-    TRACE_RETURN(ippStsNoErr);
-
-  result = image_convert_copy(image, metaType, &status);
-  if(IS_ERROR(status)) {
-    assert(result == NULL);
-    TRACE_RETURN(status);
-  }
-
-  data_swap(image->data, result->data);
-  image_destroy(result);
-
-  TRACE_RETURN(status);
 } TRACE_END
 
 
@@ -666,13 +653,13 @@ TRACE_FUNC(Image*, image_transpose_copy, (Image* image, int* pStatus)) {
 
   assert(image != NULL);
 
-  result = image_new(HEIGHT(image), WIDTH(image), CHANNELS(image));
+  result = image_new(HEIGHT(image), WIDTH(image), METATYPE(image), BORDER(image));
   if(result == NULL) {
     status = ippStsNoMemErr;
     goto end;
   }
 
-#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiTranspose_, M_REPLACE_C_IF_C(M_REPLACE_D_IF_D(M, 32f, 32s), AC4, C4), R) (PWPWI(image, result)) /* TODO: test this hack*/
+#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiTranspose_, M_REPLACE_C_IF_C(M_REPLACE_D_IF_D(M, 32f, 32s), AC4, C4), R) (PWPWI(image, result)) /* 32f -> 32s hack works, tested */
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
 #undef METAFUNC
 
@@ -689,31 +676,48 @@ end:
 
 
 // -------------------------------------------------------------------------- //
-// image_threshold_copy
+// image_threshold
 // -------------------------------------------------------------------------- //
-TRACE_FUNC(Image*, image_threshold_copy, (Image* image, Color* threshold, IppCmpOp cmp, Color* value, int* pStatus)) {
-  Image* newImage;
+TRACE_FUNC(int, image_threshold, (Image* image, Color* threshold, IppCmpOp cmp, Color* value)) {
   int status;
   USING_M2C_COLOR(2);
 
   assert(image != NULL && threshold != NULL && value != NULL);
   assert(cmp == ippCmpLess || cmp == ippCmpGreater);
 
-  newImage = image_new(WIDTH(image), HEIGHT(image), CHANNELS(image));
-  if(newImage == NULL) {
+#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiThreshold_Val_, M, IR) (PWI(image), M2C_COLOR(M, threshold->as_array, 0), M2C_COLOR(M, value->as_array, 1), cmp)
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC
+
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_threshold_copy
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(Image*, image_threshold_copy, (Image* image, Color* threshold, IppCmpOp cmp, Color* value, int* pStatus)) {
+  Image* result;
+  int status;
+  USING_M2C_COLOR(2);
+
+  assert(image != NULL && threshold != NULL && value != NULL);
+  assert(cmp == ippCmpLess || cmp == ippCmpGreater);
+
+  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image));
+  if(result == NULL) {
     status = ippStsNoMemErr;
     goto end;
   }
 
-#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiThreshold_Val_, M, R)                  \
-  (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), M2C_COLOR(M, threshold->as_array, 0), M2C_COLOR(M, value->as_array, 1), cmp)
+#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiThreshold_Val_, M, R) (PWPWI(image, result), M2C_COLOR(M, threshold->as_array, 0), M2C_COLOR(M, value->as_array, 1), cmp)
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
 #undef METAFUNC
 
 end:
   if(pStatus != NULL)
     *pStatus = status;
-  TRACE_RETURN(newImage);
+  TRACE_RETURN(result);
 } TRACE_END
 
 
@@ -728,6 +732,90 @@ TRACE_FUNC(int, image_jaehne, (Image* image)) {
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiImageJaehne_, R, (PWI(image))), Unreachable(), ippStsBadArgErr);
 
   TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_dilate3x3
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_dilate3x3, (Image* image)) {
+  int status;
+
+  assert(image != NULL);
+
+  status = image_ensure_border(image, 1);
+  if(IS_ERROR(status))
+    TRACE_RETURN(status);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiDilate3x3_, IR, (PWI(image))), Unreachable(), ippStsBadArgErr);
+
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_dilate3x3_copy
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(Image*, image_dilate3x3_copy, (Image* image, int* pStatus)) {
+  Image* result;
+  int status;
+
+  assert(image != NULL);
+
+  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), max(BORDER(image), 1));
+  if(result == NULL) {
+    status = ippStsNoMemErr;
+    goto end;
+  }
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiDilate3x3_, R, (PWPWI(image, result))), Unreachable(), ippStsBadArgErr);
+
+end:
+  if(pStatus != NULL)
+    *pStatus = status;
+  TRACE_RETURN(result);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_erode3x3
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_erode3x3, (Image* image)) {
+  int status;
+
+  assert(image != NULL);
+
+  status = image_ensure_border(image, 1);
+  if(IS_ERROR(status))
+    TRACE_RETURN(status);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiErode3x3_, IR, (PWI(image))), Unreachable(), ippStsBadArgErr);
+
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_erode3x3_copy
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(Image*, image_erode3x3_copy, (Image* image, int* pStatus)) {
+  Image* result;
+  int status;
+
+  assert(image != NULL);
+
+  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), max(BORDER(image), 1));
+  if(result == NULL) {
+    status = ippStsNoMemErr;
+    goto end;
+  }
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiErode3x3_, R, (PWPWI(image, result))), Unreachable(), ippStsBadArgErr);
+
+end:
+  if(pStatus != NULL)
+    *pStatus = status;
+  TRACE_RETURN(result);
 } TRACE_END
 
 

@@ -16,7 +16,7 @@ extern "C" {
 /**
  * Main Image structure. <p>
  *
- * Note that we are using ruby gc facilities for sharing one Data structure between several Images. <br/>
+ * Note that we are using ruby gc facilities for sharing one Data structure between several Images. <br>
  * Of course this isn't the only possible solution for our problem. Other approaches are as follows:
  * <ul>
  * <li> Use internal reference counting
@@ -28,7 +28,7 @@ extern "C" {
  * </ul>
  * The last approach isn't flexible enough, unsafe counting is, huh, unsafe, so the only reasonable alternative is to use thread-safe counting.
  * But implementing thread-safe counting is a real pain in the ass - we'd have to implement it several times for different platforms, operating systems, and even compilers.
- * Only on Windows we have neat InterlockedIncrement and InterlockedDecrement intrinsics. For *nix we'll have no choice but to mess with inline assembler or pthreads. <br/>
+ * Only on Windows we have neat InterlockedIncrement and InterlockedDecrement intrinsics. For *nix we'll have no choice but to mess with inline assembler or pthreads. <br>
  * So that's it - the simplest way is to use ruby gc. <p>
  *
  * Also note that even though we are storing a reference to Data structure, it is still considered a part of Image's internal state, 
@@ -42,11 +42,11 @@ extern "C" {
  *
  * As I've noted above, we use ruby gc for sharing one Data structure between several images. It's a nice approach, but it gives rise to many subtle problems.
  * Consider the following example:
- * <code>
+ * <code><pre>
  *   Image* img = image_new(...);
  *   // work with heap using ruby's xalloc
  *   image_transpose(img); // use image
- * </code>
+ * </pre></code>
  * It seems everything is OK, but it's not. A call to xalloc may trigger gc, which will sweep out the underlying shared Data structure and we'll end up with a segmentation fault.
  * To avoid it, we use lazy gc registration of Data structure - it gets registered in image_wrap. And if you call image_destroy before a call to image_wrap, the Data will be 
  * deallocated.
@@ -70,7 +70,7 @@ struct _Image {
  * 
  * @returns newly allocated Image, or NULL in case of an error.
  */
-Image* image_new(int width, int height, IppMetaType metaType);
+Image* image_new(int width, int height, IppMetaType metaType, int border);
 
 
 /**
@@ -136,6 +136,12 @@ int image_width(Image* image);
 
 
 /**
+ * @returns available image border
+ */
+int image_border_available(Image* image);
+
+
+/**
  * @returns channel type of a given image
  */
 IppChannels image_channels(Image* image);
@@ -154,13 +160,23 @@ IppMetaType image_metatype(Image* image);
 
 
 /**
+ * Adds border pixels to an image. If a border of necessary size is already available, does nothing.
+ * 
+ * @param image source image
+ * @param border required width of the border in pixels
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_ensure_border(Image* image, int border);
+
+
+/**
  * Loads an image from a file.
  *
  * @param filename name of a file to load image from
  * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
  * @returns a newly loaded image, or NULL in case of an error
  */
-Image* image_load(const char* filename, int* pStatus);
+Image* image_load(const char* filename, int border, int* pStatus);
 
 
 /**
@@ -185,7 +201,7 @@ int image_addranduniform(Image* image, IppMetaNumber lo, IppMetaNumber hi);
 
 
 /**
- * Converts the given image to given data type.
+ * Converts the given image to given data type. If no conversion is needed, just returns a clone of the given image (underlying data is cloned too!).
  * 
  * @param image source image
  * @param dataType new data type
@@ -196,18 +212,7 @@ Image* image_convert_datatype_copy(Image* image, IppDataType dataType, int* pSta
 
 
 /**
- * Converts the given image to given data type. Performs in-place conversion.
- * 
- * @param image source image
- * @param dataType new data type
- * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
- * @see image_convert_datatype_copy
- */
-int image_convert_datatype(Image* image, IppDataType dataType);
-
-
-/**
- * Converts the given image to given channels type.
+ * Converts the given image to given channels type. If no conversion is needed, just returns a clone of the given image (underlying data is cloned too!).
  * 
  * @param image source image
  * @param channels new channels type
@@ -218,18 +223,7 @@ Image* image_convert_channels_copy(Image* image, IppChannels channels, int* pSta
 
 
 /**
- * Converts the given image to given channels type. Performs in-place conversion.
- * 
- * @param image source image
- * @param channels new channels type
- * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
- * @see image_convert_channels_copy
- */
-int image_convert_channels(Image* image, IppChannels channels);
-
-
-/**
- * Converts the given image to given metatype.
+ * Converts the given image to given metatype. If no conversion is needed, just returns a clone of the given image (underlying data is cloned too!).
  * 
  * @param image source image
  * @param metaType new metatype
@@ -237,17 +231,6 @@ int image_convert_channels(Image* image, IppChannels channels);
  * @returns a newly created converted image, or NULL in case of an error
  */
 Image* image_convert_copy(Image* image, IppMetaType metaType, int* pStatus);
-
-
-/**
- * Converts the given image to given metatype. Performs in-place conversion.
- * 
- * @param image source image
- * @param metaType new metatype
- * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
- * @see image_convert_copy
- */
-int image_convert(Image* image, IppMetaType metaType);
 
 
 /**
@@ -295,6 +278,20 @@ Image* image_transpose_copy(Image* image, int* pStatus);
 
 
 /**
+ * Performs in-place thresholding of pixel values in an image.
+ * Pixels that satisfy the cmp relation with threshold, are set to a specified value.
+ * Note that alpha channel is not thresholded.
+ *
+ * @param image source image
+ * @param threshold threshold value
+ * @param cmp relation, only ippCmpLess and ippCmpGreater are supported
+ * @param value color value to set thresholded pixels to
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_threshold(Image* image, Color* threshold, IppCmpOp cmp, Color* value);
+
+
+/**
  * Performs thresholding of pixel values in an image.
  * Pixels that satisfy the cmp relation with threshold, are set to a specified value.
  * Note that alpha channel is not thresholded.
@@ -302,6 +299,7 @@ Image* image_transpose_copy(Image* image, int* pStatus);
  * @param image source image
  * @param threshold threshold value
  * @param cmp relation, only ippCmpLess and ippCmpGreater are supported
+ * @param value color value to set thresholded pixels to
  * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
  * @returns a newly created thresholded image, or NULL in case of an error
  */
@@ -315,6 +313,44 @@ Image* image_threshold_copy(Image* image, Color* threshold, IppCmpOp cmp, Color*
  * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
 int image_jaehne(Image* image);
+
+
+/**
+ * Performs in-place dilation of an image using a 3x3 mask. In the four-channel image the alpha channel is not processed.
+ *
+ * @param image source image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_dilate3x3(Image* image);
+
+
+/**
+ * Performs dilation of an image using a 3x3 mask. In the four-channel image the alpha channel is not processed.
+ *
+ * @param image source image
+ * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
+ * @returns a newly created dilated image, or NULL in case of an error
+ */
+Image* image_dilate3x3_copy(Image* image, int* pStatus);
+
+
+/**
+ * Performs in-place erosion of an image using a 3x3 mask. In the four-channel image the alpha channel is not processed.
+ *
+ * @param image source image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_erode3x3(Image* image);
+
+
+/**
+ * Performs erosion of an image using a 3x3 mask. In the four-channel image the alpha channel is not processed.
+ *
+ * @param image source image
+ * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
+ * @returns a newly created eroded image, or NULL in case of an error
+ */
+Image* image_erode3x3_copy(Image* image, int* pStatus);
 
 
 /*

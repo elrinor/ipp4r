@@ -44,6 +44,10 @@
 #define C2R_FLT(V) C2R_DBL(V)
 
 #define R2M_NUM(V) C2M_NUMBER_D(32f, R2C_FLT(V))
+#define M2R_NUM(V) C2R_FLT(M2C_NUMBER_D(32f, V))
+
+#define C2R_METANUM M2R_NUM
+#define R2C_METANUM R2M_NUM
 
 // -------------------------------------------------------------------------- //
 // STATIC_ASSERT
@@ -107,5 +111,15 @@ VALUE rb_ ## CLASS ## _ ## ATTR ## _eq(VALUE self, VALUE val) {                 
 #  undef TRUE
 #endif
 #define TRUE 1
+
+#ifdef max
+#  undef max
+#endif
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
+#ifdef min
+#  undef min
+#endif
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 
 #endif

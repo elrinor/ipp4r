@@ -30,8 +30,8 @@ void* xmalloc_protected(long size) {
 
 
 /**
- * Allocates a memory block aligned to a 32-byte boundary. <br/>
- * Much like the one from ipp, but uses xmalloc provided by ruby. <br/>
+ * Allocates a memory block aligned to a 32-byte boundary. <br>
+ * Much like the one from ipp, but uses xmalloc provided by ruby. <br>
  * 
  * @returns a pointer to a newly allocated block, or NULL in case of an error
  */
@@ -69,12 +69,12 @@ static void ipp4rFree(void* ptr) {
 // -------------------------------------------------------------------------- //
 // data_new
 // -------------------------------------------------------------------------- //
-TRACE_FUNC(Data*, data_new, (int width, int height, IppMetaType metaType)) {
+TRACE_FUNC(Data*, data_new, (int width, int height, IppMetaType metaType, int border)) {
   int wStep;
   Data* data;
-  void* pixels;
+  void* buffer;
 
-  assert(width > 0 && height > 0);
+  assert(width > 0 && height > 0 && border >= 0);
 
   /* We use malloc and not ALLOC here because:
    * 1. We don't want to mess with exception handling - our function mustn't throw.
@@ -83,21 +83,26 @@ TRACE_FUNC(Data*, data_new, (int width, int height, IppMetaType metaType)) {
   if(data == NULL)
     TRACE_RETURN(NULL);
 
-  pixels = ipp4rMalloc(width, height, metaType, &wStep); 
-  if(pixels == NULL) {
+  buffer = ipp4rMalloc(width + 2 * border, height + 2 * border, metaType, &wStep); 
+  if(buffer == NULL) {
     free(data);
     TRACE_RETURN(NULL);
   }
 
-  data->pixels = pixels;
+  data->buffer = buffer;
   data->metaType = metaType;
   data->height = height;
   data->width = width;
   data->wStep = wStep;
   data->pixelSize = metatype_pixel_size(metaType);
+  data->border = border;
+
   data->shared = FALSE; /* Initially data is not shared */
 
-  TRACE(("%08X w=%d h=%d m=%d p=%08X", data, width, height, metaType, pixels));
+  data->pixels = (char*) data->buffer + data->border * (data->wStep + data->pixelSize); /* pixels points to the "beginning" of an image */
+
+
+  TRACE(("%08X w=%d h=%d b=%d m=%d buf=%08X", data, width, height, border, metaType, buffer));
 
   TRACE_RETURN(data);
 } TRACE_END
@@ -109,9 +114,9 @@ TRACE_FUNC(Data*, data_new, (int width, int height, IppMetaType metaType)) {
 TRACE_FUNC(void, data_destroy, (Data* data)) {
   assert(data != NULL);
 
-  TRACE(("%08X w=%d h=%d m=%d p=%08X", data, data->width, data->height, data->metaType, data->pixels));
+  TRACE(("%08X w=%d h=%d m=%d buf=%08X", data, data->width, data->height, data->metaType, data->buffer));
 
-  ipp4rFree(data->pixels);
+  ipp4rFree(data->buffer);
   free(data);
 } TRACE_END
 
@@ -121,9 +126,16 @@ TRACE_FUNC(void, data_destroy, (Data* data)) {
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(void, data_swap, (Data* l, Data* r)) {
   Data tmp;
+  int intTmp;
 
   tmp = *l;
   *l = *r;
   *r = tmp;
+
+  /* We mustn't swap "shared" field, because shared determines whether the current data structure is registered in ruby gc.
+   * Swapping data fields does not register / unregister a data structure. */
+  intTmp = l->shared;
+  l->shared = r->shared;
+  r->shared = intTmp;
 } TRACE_END
 

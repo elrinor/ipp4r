@@ -34,10 +34,10 @@
 // -------------------------------------------------------------------------- //
 // Local accesors
 // -------------------------------------------------------------------------- //
-DEFINE_ACCESSOR(Color, r, INT)
-DEFINE_ACCESSOR(Color, g, INT)
-DEFINE_ACCESSOR(Color, b, INT)
-DEFINE_ACCESSOR(Color, a, INT)
+DEFINE_ACCESSOR(Color, r, METANUM)
+DEFINE_ACCESSOR(Color, g, METANUM)
+DEFINE_ACCESSOR(Color, b, METANUM)
+DEFINE_ACCESSOR(Color, a, METANUM)
 
 DEFINE_READER(ColorRef, x, INT)
 DEFINE_READER(ColorRef, y, INT)
@@ -95,13 +95,13 @@ void Init_ipp4r() {
   /* And all other classes */
   rb_Image = rb_define_class_under(rb_Ipp, "Image", rb_cObject);
   rb_define_singleton_method(rb_Image, "jaehne", rb_Image_jaehne, -1);
+  rb_define_singleton_method(rb_Image, "load", rb_Image_load, -1);
   rb_define_alloc_func(rb_Image, rb_Image_alloc);
   rb_define_method(rb_Image, "initialize", rb_Image_initialize, -1);
   rb_define_method(rb_Image, "initialize_copy", rb_Image_initialize_copy, 1);
   rb_define_method(rb_Image, "save", rb_Image_save, 1);
   rb_define_method(rb_Image, "add_rand_uniform!", rb_Image_add_rand_uniform_bang, 2);
   rb_define_method(rb_Image, "add_rand_uniform", rb_Image_add_rand_uniform, 2);
-  rb_define_method(rb_Image, "convert!", rb_Image_convert_bang, 1);
   rb_define_method(rb_Image, "convert", rb_Image_convert, 1);
   rb_define_method(rb_Image, "width", rb_Image_width, 0);
   rb_define_method(rb_Image, "height", rb_Image_height, 0);
@@ -114,7 +114,13 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "fill", rb_Image_fill, 1);
   rb_define_method(rb_Image, "transpose", rb_Image_transpose, 0);
   rb_define_method(rb_Image, "subimage", rb_Image_subimage, -1);
+  rb_define_method(rb_Image, "threshold!", rb_Image_threshold_bang, -1);
   rb_define_method(rb_Image, "threshold", rb_Image_threshold, -1);
+  rb_define_method(rb_Image, "dilate3x3!", rb_Image_dilate3x3_bang, 0);
+  rb_define_method(rb_Image, "dilate3x3", rb_Image_dilate3x3, 0);
+  rb_define_method(rb_Image, "erode3x3!", rb_Image_erode3x3_bang, 0);
+  rb_define_method(rb_Image, "erode3x3", rb_Image_erode3x3, 0);
+
 
   rb_Data = rb_define_class_under(rb_Image, "Data", rb_cObject);
 

@@ -17,15 +17,19 @@ TRACE_FUNC(VALUE, rb_Image_initialize, (int argc, VALUE *argv, VALUE self)) {
   int height;
   Image* image;
   int status;
+  int border;
   VALUE filler;
   IppMetaType metaType;
 
   filler = Qnil;
   metaType = ipp8u_C3;
+  border = 1;
 
   switch (argc) {
+  case 5:
+    filler = argv[4];
   case 4:
-    filler = argv[3];
+    border = R2C_INT(argv[3]);
   case 3:
     metaType = R2C_ENUM(argv[2], rb_MetaType);
   case 2:
@@ -33,15 +37,10 @@ TRACE_FUNC(VALUE, rb_Image_initialize, (int argc, VALUE *argv, VALUE self)) {
     height = R2C_INT(argv[1]);
     if(width <= 0 || height <= 0)
       rb_raise(rb_Exception, "wrong image size: %d x %d", width, height);
-    image = image_new(width, height, metaType);
-    break;
-  case 1:
-    Check_Type(argv[0], T_STRING);
-    image = image_load(R2C_STR(argv[0]), &status);
-    raise_on_error(status);
+    image = image_new(width, height, metaType, border);
     break;
   default:
-    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1, 2, 3 or 4)", argc);
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 2, 3, 4 or 5)", argc);
     break;
   }
 
@@ -55,6 +54,33 @@ TRACE_FUNC(VALUE, rb_Image_initialize, (int argc, VALUE *argv, VALUE self)) {
     rb_Image_fill_bang(self, filler);
 
   TRACE_RETURN(self);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_load
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(VALUE, rb_Image_load, (int argc, VALUE* argv, VALUE klass)) {
+  Image* image;
+  int status;
+  int border;
+
+  border = 1;
+
+  switch (argc) {
+  case 2:
+    border = R2C_INT(argv[1]);
+  case 1:
+    Check_Type(argv[0], T_STRING);
+    image = image_load(R2C_STR(argv[0]), border, &status);
+    raise_on_error(status);
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1 or 2)", argc);
+    break;
+  }
+
+  TRACE_RETURN(image_wrap(image));
 } TRACE_END
 
 
@@ -259,16 +285,6 @@ TRACE_FUNC(VALUE, rb_Image_convert, (VALUE self, VALUE r_metatype)) {
 
 
 // -------------------------------------------------------------------------- //
-// rb_Image_convert_bang
-// -------------------------------------------------------------------------- //
-TRACE_FUNC(VALUE, rb_Image_convert_bang, (VALUE self, VALUE r_metatype)) {
-  raise_on_error(image_convert(Data_Get_Struct_Ret(self, Image), R2C_ENUM(r_metatype, rb_MetaType)));
-  
-  TRACE_RETURN(self);
-} TRACE_END
-
-
-// -------------------------------------------------------------------------- //
 // rb_Image_ref
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_ref(VALUE self, VALUE x, VALUE y) {
@@ -308,7 +324,7 @@ VALUE rb_Image_ref_eq(VALUE self, VALUE x, VALUE y, VALUE color) {
 VALUE rb_Image_fill_bang(VALUE self, VALUE rb_color) {
   Color color;
 
-  R2C_COLOR(color, rb_color);
+  R2C_COLOR(&color, rb_color);
 
   raise_on_error(image_fill(Data_Get_Struct_Ret(self, Image), &color));
 
@@ -346,6 +362,33 @@ VALUE rb_Image_transpose(VALUE self) {
 
 
 // -------------------------------------------------------------------------- //
+// rb_Image_threshold_parseargs
+// -------------------------------------------------------------------------- //
+static void rb_Image_threshold_parseargs(int argc, VALUE* argv, Color* threshold, IppCmpOp* cmp, Color* value) {
+  switch(argc) {
+  case 1:
+  case 2:
+  case 3:
+    R2C_COLOR(threshold, argv[0]);
+
+    if(argc >= 2)
+      *cmp = R2C_ENUM(argv[1], rb_CmpOp);
+    else
+      *cmp = ippCmpLess;
+
+    if(argc >= 3)
+      R2C_COLOR(value, argv[2]);
+    else
+      *value = *threshold;
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1, 2 or 3)", argc);
+    break;
+  }
+}
+
+
+// -------------------------------------------------------------------------- //
 // rb_Image_threshold
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_threshold(int argc, VALUE* argv, VALUE self) {
@@ -354,30 +397,72 @@ VALUE rb_Image_threshold(int argc, VALUE* argv, VALUE self) {
   IppCmpOp cmp;
   Color threshold, value;
  
-  switch(argc) {
-  case 1:
-  case 2:
-  case 3:
-    R2C_COLOR(threshold, argv[0]);
-    
-    if(argc >= 2)
-      cmp = R2C_ENUM(argv[1], rb_CmpOp);
-    else
-      cmp = ippCmpLess;
-
-    if(argc >= 3)
-      R2C_COLOR(value, argv[2]);
-    else
-      value = threshold;
-    
-    break;
-  default:
-    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1, 2 or 3)", argc);
-    break;
-  }
-
+  rb_Image_threshold_parseargs(argc, argv, &threshold, &cmp, &value);
+ 
   newImage = image_threshold_copy(Data_Get_Struct_Ret(self, Image), &threshold, cmp, &value, &status);
   raise_on_error(status);
 
   return image_wrap(newImage);
 }
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_threshold_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_threshold_bang(int argc, VALUE* argv, VALUE self) {
+  IppCmpOp cmp;
+  Color threshold, value;
+
+  rb_Image_threshold_parseargs(argc, argv, &threshold, &cmp, &value);
+
+  raise_on_error(image_threshold(Data_Get_Struct_Ret(self, Image), &threshold, cmp, &value));
+
+  return self;
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_dilate3x3
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_dilate3x3(VALUE self) {
+  Image* newImage;
+  int status;
+
+  newImage = image_dilate3x3_copy(Data_Get_Struct_Ret(self, Image), &status);
+  raise_on_error(status);
+
+  return image_wrap(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_dilate3x3_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_dilate3x3_bang(VALUE self) {
+  raise_on_error(image_dilate3x3(Data_Get_Struct_Ret(self, Image)));
+  return self;
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_erode3x3
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_erode3x3(VALUE self) {
+  Image* newImage;
+  int status;
+
+  newImage = image_erode3x3_copy(Data_Get_Struct_Ret(self, Image), &status);
+  raise_on_error(status);
+
+  return image_wrap(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_erode3x3_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_erode3x3_bang(VALUE self) {
+  raise_on_error(image_erode3x3(Data_Get_Struct_Ret(self, Image)));
+  return self;
+}
+

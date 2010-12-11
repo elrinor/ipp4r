@@ -9,11 +9,11 @@
 /**
  * @file 
  *
- * This file defines C and Ruby interfaces for working with colors. <p/>
+ * This file defines C and Ruby interfaces for working with colors. <p>
  *
  * One of the main concepts of color infrastructure is the so-called "MetaColor". 
  * The c-type for MetaColor is IppMetaNumber[4] - pointer to an array of at least 4 IppMetaNumbers.
- * The MetaColor of Color structure can be accessed through as_array field. <p/>
+ * The MetaColor of Color structure can be accessed through as_array field. <p>
  *
  * Also this header defines some useful macros for color conversion between different color types, i.e. grayscale, rgb, rgba, and between colors of different data types. The latter
  * relies on IppMetaType conversion infrastructure. Color conversion functions exist in 2 variants - expression-type and statement-type converters. Expression-type converters
@@ -55,7 +55,7 @@ struct _ColorRef {
 // Color C interface
 // -------------------------------------------------------------------------- //
 /**
- * Allocates memory for Color and initializes it. <br/>
+ * Allocates memory for Color and initializes it. <br>
  * Note that r, g, b and a parameters must be in [0, 1] range.
  *
  * @param r red color component
@@ -281,10 +281,10 @@ VALUE rb_ColorRef_a_eq(VALUE self, VALUE val);
  * @param R_COLOR <tt>VALUE</tt> of ruby color
  */
 #define R2C_COLOR(C_COLOR, R_COLOR) do {                                        \
-    (C_COLOR).r = C2M_NUMBER_D(32f, R2C_FLT(rb_funcall((R_COLOR), rb_ID_r, 0))); \
-    (C_COLOR).g = C2M_NUMBER_D(32f, R2C_FLT(rb_funcall((R_COLOR), rb_ID_g, 0))); \
-    (C_COLOR).b = C2M_NUMBER_D(32f, R2C_FLT(rb_funcall((R_COLOR), rb_ID_b, 0))); \
-    (C_COLOR).a = C2M_NUMBER_D(32f, R2C_FLT(rb_funcall((R_COLOR), rb_ID_a, 0))); \
+    (C_COLOR)->r = R2M_NUM(rb_funcall((R_COLOR), rb_ID_r, 0));                  \
+    (C_COLOR)->g = R2M_NUM(rb_funcall((R_COLOR), rb_ID_g, 0));                  \
+    (C_COLOR)->b = R2M_NUM(rb_funcall((R_COLOR), rb_ID_b, 0));                  \
+    (C_COLOR)->a = R2M_NUM(rb_funcall((R_COLOR), rb_ID_a, 0));                  \
   } while(0)
 
 

@@ -18,15 +18,24 @@ VALUE rb_Image_alloc(VALUE klass);
 /**
  * Method: 
  * <ul>
- * <li> <tt>Ipp::Image#initialize(width, height, metatype = Ipp8u_C3, [fill])</tt>
- * <li> <tt>Ipp::Image#initialize(fileName)</tt>
+ * <li> <tt>Ipp::Image#initialize(width, height, metatype = Ipp8u_C3, border = 1, [fill])</tt>
  * </ul>
  *         
  * Initializes a new Image object.
- * @see image_load
  * @see image_new
  */
 VALUE rb_Image_initialize(int argc, VALUE *argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#load(filename, border = 1)</tt>
+ * </ul>
+ *
+ * Load an image from file.
+ */
+VALUE rb_Image_load(int argc, VALUE* argv, VALUE self);
 
 
 /**
@@ -166,21 +175,9 @@ VALUE rb_Image_metatype(VALUE self);
  * <li> <tt>Ipp::Image#convert(MetaType to) </tt>
  * </ul>
  * 
- * Creates a copy of image and converts it to another metatype.
+ * Creates a copy of image and converts it to another metatype. Note that new image is created even in case no conversion is needed.
  */
 VALUE rb_Image_convert(VALUE self, VALUE r_channels);
-
-
-/**
- * Method:
- * <ul>
- * <li> <tt>Ipp::Image#convert!(MetaType to) </tt>
- * </ul>
- * 
- * Converts given image to another metatype.
- * @returns self
- */
-VALUE rb_Image_convert_bang(VALUE self, VALUE r_metatype);
 
 
 /**
@@ -249,6 +246,67 @@ VALUE rb_Image_transpose(VALUE self);
  * @returns a thresholded copy of a source image
  */
 VALUE rb_Image_threshold(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#threshold!(threshold, cmp = Ipp::LessThan, value = threshold) </tt>
+ * </ul>
+ * 
+ * Performs thresholding of pixel values in an image
+ * @returns self
+ */
+VALUE rb_Image_threshold_bang(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#dilate3x3 </tt>
+ * </ul>
+ *
+ * @returns a dilated copy of a source image
+ * @see rb_Image_dilate3x3_bang
+ */
+VALUE rb_Image_dilate3x3(VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#dilate3x3! </tt>
+ * </ul>
+ *
+ * Performs dilation of an image using a 3x3 mask. In the four-channel image the alpha channel is not processed.
+ * @returns self
+ */
+VALUE rb_Image_dilate3x3_bang(VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#erode3x3 </tt>
+ * </ul>
+ *
+ * @returns an eroded copy of a source image
+ * @see rb_Image_erode3x3_bang
+ */
+VALUE rb_Image_erode3x3(VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#erode3x3! </tt>
+ * </ul>
+ *
+ * Performs erosion of an image using a 3x3 mask. In the four-channel image the alpha channel is not processed.
+ * @returns self
+ */
+VALUE rb_Image_erode3x3_bang(VALUE self);
+
 
 
 #ifdef __cplusplus

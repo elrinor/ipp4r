@@ -17,11 +17,13 @@ extern "C" {
 struct _Data {
   IppMetaType metaType; /**< metatype of an image */
 
-  void* pixels;         /**< pointer to aligned image data */
+  void* buffer;         /**< pointer to image data buffer. Must be used for calls to free only. */
+  void* pixels;         /**< pointer to upper-left corner of an image */
   int width;            /**< image width in pixels */
   int height;           /**< image height in pixels */
   int wStep;            /**< size of aligned image row in bytes */
   int pixelSize;        /**< size of one image pixel in bytes */
+  int border;           /**< image border size */ 
 
   int shared;           /**< Is this data structure already registered in ruby gc and is shared between several images? 
                          *   I.e. mustn't we deallocate it when freeing the corresponding image? */
@@ -33,7 +35,7 @@ struct _Data {
  * 
  * @returns newly allocated Data, or NULL in case of an error.
  */
-Data* data_new(int width, int height, IppMetaType metaType);
+Data* data_new(int width, int height, IppMetaType metaType, int border);
 
 
 /**

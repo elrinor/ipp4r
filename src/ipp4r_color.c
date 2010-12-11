@@ -87,14 +87,14 @@ VALUE rb_Color_initialize(int argc, VALUE *argv, VALUE self) {
   a = 1.0f;
   switch (argc) {
   case 4:
-    a = C2M_NUMBER_D(32f, R2C_FLT(argv[3]));
+    a = R2M_NUM(argv[3]);
   case 3:
-    r = C2M_NUMBER_D(32f, R2C_FLT(argv[0]));
-    g = C2M_NUMBER_D(32f, R2C_FLT(argv[1]));
-    b = C2M_NUMBER_D(32f, R2C_FLT(argv[2]));
+    r = R2M_NUM(argv[0]);
+    g = R2M_NUM(argv[1]);
+    b = R2M_NUM(argv[2]);
     break;
   case 1:
-    r = g = b = C2M_NUMBER_D(32f, R2C_FLT(argv[0]));
+    r = g = b = R2M_NUM(argv[0]);
     break;
   case 0:
     r = g = b = 0.0f;
@@ -186,7 +186,7 @@ void colorref_mark(ColorRef* colorref) {
 // -------------------------------------------------------------------------- //
 VALUE rb_ColorRef_set(VALUE self, VALUE other) {
   Color color;
-  R2C_COLOR(color, other);
+  R2C_COLOR(&color, other);
   rb_ColorRef_setter(self, &color);
   return self;
 }
@@ -198,7 +198,7 @@ VALUE rb_ColorRef_set(VALUE self, VALUE other) {
 #define DEFINE_COLORREF_GETTER(SUFFIX)                                          \
 VALUE rb_ColorRef_ ## SUFFIX(VALUE self) {                                      \
   Color color;                                                                  \
-  return C2R_DBL(rb_ColorRef_getter(self, &color)->SUFFIX);                     \
+  return M2R_NUM(rb_ColorRef_getter(self, &color)->SUFFIX);  \
 }
 
 DEFINE_COLORREF_GETTER(r)
@@ -213,7 +213,7 @@ DEFINE_COLORREF_GETTER(a)
 #define DEFINE_COLORREF_SETTER(SUFFIX)                                          \
 VALUE rb_ColorRef_ ## SUFFIX ## _eq(VALUE self, VALUE val) {                    \
   Color color;                                                                  \
-  rb_ColorRef_getter(self, &color)->SUFFIX = (Ipp32f) R2C_DBL(val);             \
+  rb_ColorRef_getter(self, &color)->SUFFIX = R2M_NUM(val);                      \
   rb_ColorRef_setter(self, &color);                                             \
   return val;                                                                   \
 }

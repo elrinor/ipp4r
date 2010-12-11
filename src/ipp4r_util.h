@@ -11,14 +11,14 @@ extern "C" {
 // Function prototypes
 // -------------------------------------------------------------------------- //
 /**
- * Replacement for ruby's Data_Get_Struct macro. <br/>
+ * Replacement for ruby's Data_Get_Struct macro. <br>
  * Rationale: this is a function with return value => it can be used in expressions, unlike Data_Get_Struct, which is a statement. "Syntactic sugar", that's it.
  */
 void* get_struct_checked_ret(VALUE obj); 
 
 
 /**
- * Replacement for ruby's rb_raise. <br/>
+ * Replacement for ruby's rb_raise. <br>
  * Rationale: same as for get_struct_checked_ret. This is a function with return value => it can be used in expressions.
  *
  * @returns Qnil
@@ -27,7 +27,7 @@ VALUE rb_raise_ret(VALUE exc, const char* fmt, ...);
 
 
 /**
- * asserts arg != Qnil. <br/>
+ * asserts arg != Qnil. <br>
  * Just Another Syntactic Sugar Function (c) 
  *
  * @returns arg

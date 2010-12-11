@@ -8,7 +8,7 @@
  * @file
  * 
  * This header contains support macros and functions for metatype infrastructure.
- * The name "meta" has no special meaning and was chosen arbitrarily, without any prior analysis. <p/>
+ * The name "meta" has no special meaning and was chosen arbitrarily, without any prior analysis. <p>
  *
  * The metatype infrastructure works on two different levels:
  * <ul>
@@ -16,10 +16,10 @@
  * <li> Compile-time level
  * <li> Run-time level
  * </ul>
- * <p/>
+ * <p>
  *
  * At pp-time we define a special preprocessor type METATYPE, which is composed of DATATYPE and CHANNELS.
- * DATATYPE and CHANNELS parts of METATYPE can be acessed using acessor macros at pp-time. <p/>
+ * DATATYPE and CHANNELS parts of METATYPE can be acessed using acessor macros at pp-time. <p>
  *
  * At compile-time we have: 
  * <ul>
@@ -29,9 +29,9 @@
  * </ul>
  * pp-time abstractions can be converted to their compile-time equivalents using conversion macros. 
  * Also at compile-time we have a special number type - IppMetaNumber, which is a supertype for all data types. 
- * The corresponding pp-time DATATYPE for IppMetaNumber is D_METANUM. <p/>
+ * The corresponding pp-time DATATYPE for IppMetaNumber is D_METANUM. <p>
  *
- * At run-time we have METACALL macros which perform a call basing on the value of METATYPE enum, and converters to and from IppMetaNumber type. <p/>
+ * At run-time we have METACALL macros which perform a call basing on the value of METATYPE enum, and converters to and from IppMetaNumber type. <p>
  */
 
 #ifdef __cplusplus

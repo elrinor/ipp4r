@@ -5,10 +5,11 @@
 
 /**
  * @file
- * This is ARX Preprocessor library header file. <br/>
- * The macros defined here are used for high-level template metaprogramming. <p/>
  *
- * Please note that since preprocessor implementation varies from compiler to compiler, this library may not work correctly with unsupported compilers. <br/>
+ * This is ARX Preprocessor library header file. <br>
+ * The macros defined here are used for high-level template metaprogramming. <p>
+ *
+ * Please note that since preprocessor implementation varies from compiler to compiler, this library may not work correctly with unsupported compilers. <br>
  * Currently supported compilers:
  * <ul>
  * <li> <tt>MSVC 8.0</tt>
@@ -127,10 +128,10 @@
 
 
 /**
- * This brain-explosive macro finds the first k in [1..N] for which PRED returns 1. <br/>
- * Please note that this macro relies on the fact that PRED returns 1 only for arguments which lie in [1..M] segment (possibly empty), M < N. <br/>
- * Also note that N must be a power of 2. <br/>
- * Currently only N <= 8 is supported. <br/>
+ * This brain-explosive macro finds the first k in [1..N] for which PRED returns 1. <br>
+ * Please note that this macro relies on the fact that PRED returns 1 only for arguments which lie in [1..M] segment (possibly empty), M < N. <br>
+ * Also note that N must be a power of 2. <br>
+ * Currently only N <= 8 is supported. <br>
  */
 #  define ARX_AUTO_REC(PRED, N) ARX_BSEARCH_ ## N(PRED)
 #  define ARX_BSEARCH_8(P) ARX_SNODE_4(P)(P)(P)
