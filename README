@@ -1,0 +1,45 @@
+This is ipp4r, a Ruby extension that wraps some of Image Processing routines 
+from Intel Integrated Performance Primitives library.
+
+It may be not so trivial to build ipp4r on your system. I have included
+setup-win32.bat file to make your life easier in case you are building
+ipp4r under win32 using MSVC. I tested it with MSVC 8.0 and it worked OK
+for me. Please note that you must run setup-win32.bat from Visual Studio
+Command Prompt, with ruby in your PATH. In my case the command line looked
+like this:
+
+$ setup-win32.bat
+  --opencv
+  -I "C:\Program Files\Intel\IPP\5.3.2.073\ia32\include"
+  -L "C:\Program Files\Intel\IPP\5.3.2.073\ia32\stublib"
+  -I "C:\Program Files\OpenCV\otherlibs\highgui"
+  -I "C:\Program Files\OpenCV\cxcore\include"
+  -L "C:\Program Files\OpenCV\lib"
+
+setup-win32.bat takes the same command line options as extconf.rb does:
+
+    -v, --ipp-version VERSION        use VERSION suffix for IPP libraries
+    -I, --include-dir DIR            look for include files in DIR
+    -L, --lib-dir DIR                look for library files in DIR
+        --[no-]opencv                Use OpenCV
+    -h, --help                       Show help
+
+OpenCV is used in ipp4r for loading and saving images in different formats.
+If you aren't using OpenCV, then ipp4r will work correctly with bmp images 
+only. In case you have specified --opencv switch, you must also make sure 
+that you have added corresponding -L and -I options for OpenCV include and 
+library dirs.
+
+If you're working on a non-win32 platform, then you may have to fix 
+extconf.rb - I have tested it on win32 only. I also made sure that GCC 
+3.4.* and 4.3.* compiles the sources without errors / warnings, so you 
+shouldn't have any problems compiling ipp4r with it.
+
+There is currently no documentation on ipp4r, but the sources are heavily
+commented in javadoc style, so you can use Doxygen or some other tool to
+generate documentation. You can also look at some examples in /example
+subdirectory, which should provide sufficient introduction.
+
+Please direct any questions to the author,
+
+Alexander Fokin <ru.elric@gmail.com>

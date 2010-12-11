@@ -122,6 +122,11 @@ ARX_ARRAY_FOREACH(IPP4R_IDS, IPP4R_ID_DECL_I, ARX_EMPTY)
 #undef IPP4R_ID_DECL_I
 
 
+// -------------------------------------------------------------------------- //
+// %)
+// -------------------------------------------------------------------------- //
+#define IPP4R_VERSION "0.3.5"
+
 #ifdef __cplusplus
 }
 #endif

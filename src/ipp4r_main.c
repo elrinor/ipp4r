@@ -23,7 +23,6 @@
 #  endif
 #endif
 
-
 // -------------------------------------------------------------------------- //
 // Local accesors
 // -------------------------------------------------------------------------- //
@@ -40,6 +39,17 @@ DEFINE_ACCESSOR(Point, y, INT)
 
 DEFINE_ACCESSOR(Size, width, INT)
 DEFINE_ACCESSOR(Size, height, INT)
+
+
+// -------------------------------------------------------------------------- //
+// Ipp module methods
+// -------------------------------------------------------------------------- //
+/**
+ * @returns ipp4r library version
+ */
+VALUE rb_Ipp_version() {
+  return C2R_STR(IPP4R_VERSION);
+}
 
 
 // -------------------------------------------------------------------------- //
@@ -61,6 +71,7 @@ void Init_ipp4r() {
 
   /* Then init Ipp module */
   rb_Ipp = rb_define_module("Ipp");
+  rb_define_module_function(rb_Ipp, "version", rb_Ipp_version, 0);
 
   /* Then enums */
   rb_Enum = rb_define_class_under(rb_Ipp, "Enum", rb_cObject);
