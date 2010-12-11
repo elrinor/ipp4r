@@ -3,16 +3,42 @@
 
 #include "config.h"
 
+/**
+ * @file
+ * This is ARX Preprocessor library header file. <br/>
+ * The macros defined here are used for high-level template metaprogramming. <p/>
+ *
+ * Please note that since preprocessor implementation varies from compiler to compiler, this library may not work correctly with unsupported compilers. <br/>
+ * Currently supported compilers:
+ * <ul>
+ * <li> <tt>MSVC 8.0</tt>
+ * <li> <tt>GCC 3.4+</tt>
+ * </ul>
+ */
+
 #ifdef ARX_USE_BOOST
 #  include <boost/config.hpp>
-#  define ARX_JOIN BOOST_JOIN
 #  define ARX_STRINGIZE BOOST_STRINGIZE
 
-#  include <boost/preprocessor/logical/bool.hpp>
-#  define ARX_BOOL BOOST_PP_BOOL
+#  include <boost/preprocessor/cat.hpp>
+#  define ARX_JOIN BOOST_PP_CAT
 
-#  include <boost/preprocessor/if.hpp>
+#  include <boost/preprocessor/logical.hpp
+#  define ARX_BOOL BOOST_PP_BOOL
+#  define ARX_BITAND BOOST_PP_BITAND
+#  define ARX_BITOR BOOST_PP_BITOR
+#  define ARX_BITNOT BOOST_PP_COMPL
+#  define ARX_AND BOOST_PP_AND
+#  define ARX_OR BOOST_PP_OR
+#  define ARX_NOT BOOST_PP_NOT
+
+#  include <boost/preprocessor/control.hpp>
 #  define ARX_IF BOOST_PP_IF
+#  define ARX_IIF BOOST_PP_IIF
+
+#  include <boost/preprocessor/comparison.hpp>
+#  define ARX_EQUAL BOOST_PP_EQUAL
+#  define ARX_NOT_EQUAL BOOST_PP_NOT_EQUAL
 
 #  include <boost/preprocessor/array.hpp>
 #  define ARX_ARRAY_SIZE BOOST_PP_ARRAY_SIZE
@@ -23,15 +49,73 @@
 #  include <boost/preprocessor/tuple.hpp>
 #  define ARX_TUPLE_ELEM BOOST_PP_TUPLE_ELEM
 #  define ARX_TUPLE_REVERSE BOOST_PP_TUPLE_REVERSE
+#  define ARX_TUPLE_EAT BOOST_PP_TUPLE_EAT
+
+#  include <boost/preprocessor/detail/auto_rec.hpp>
+#  define ARX_AUTO_REC BOOST_PP_AUTO_REC
+
+#  include <boost/preprocessor/punctuation.hpp>
+#  define ARX_COMMA BOOST_PP_COMMA
+#  define ARX_LPAREN BOOST_PP_LPAREN
+#  define ARX_RPAREN BOOST_PP_RPAREN
+#  define ARX_COMMA_IF BOOST_PP_COMMA_IF
+#  define ARX_LPAREN_IF BOOST_PP_LPAREN_IF
+#  define ARX_RPAREN_IF BOOST_PP_RPAREN_IF
+
+#  include <boost/preprocessor/facilities.hpp>
+#  define ARX_EMPTY BOOST_PP_EMPTY
+#  define ARX_INTERCEPT BOOST_PP_INTERCEPT
 #else // ARX_USE_BOOST
+
+
+/**
+ * Empty
+ */
+#  define ARX_EMPTY()
+
+
+/**
+ * Comma
+ */
+#  define ARX_COMMA() ,
+
+
+/**
+ * LParen
+ */
+#  define ARX_LPAREN() (
+
+
+/**
+ * RParen
+ */
+#  define ARX_RPAREN() )
+
+
+/**
+ * Comma if COND is true (i.e. != 0), empty otherwise
+ */
+#  define ARX_COMMA_IF(COND) ARX_IF(COND, ARX_COMMA, ARX_EMPTY)()
+
+
+/**
+ * LParen if COND is true (i.e. != 0), empty otherwise
+ */
+#  define ARX_LPAREN_IF(COND) ARX_IF(COND, ARX_LPAREN, ARX_EMPTY)()
+
+
+/**
+ * RParen if COND is true (i.e. != 0), empty otherwise
+ */
+#  define ARX_RPAREN_IF(COND) ARX_IF(COND, ARX_RPAREN, ARX_EMPTY)()
 
 
 /**
  * Joins the two arguments together, even when one of the arguments is itself a macro
  */
-#  define ARX_JOIN(X, Y) ARX_JOIN_I(X, Y)
-#  define ARX_JOIN_I(X, Y) ARX_JOIN_II(X, Y)
-#  define ARX_JOIN_II(X, Y) X ## Y
+#  define ARX_JOIN(a, b) ARX_JOIN_I(a, b)
+#  define ARX_JOIN_I(a, b) ARX_JOIN_II(a ## b)
+#  define ARX_JOIN_II(res) res
 
 
 /**
@@ -42,12 +126,32 @@
 
 
 /**
+ * This brain-explosive macro finds the first k in [1..N] for which PRED returns 1. <br/>
+ * Please note that this macro relies on the fact that PRED returns 1 only for arguments which lie in [1..M] segment (possibly empty), M < N. <br/>
+ * Also note that N must be a power of 2. <br/>
+ * Currently only N <= 8 is supported. <br/>
+ */
+#  define ARX_AUTO_REC(PRED, N) ARX_BSEARCH_ ## N(PRED)
+#  define ARX_BSEARCH_8(P) ARX_SNODE_4(P)(P)(P)
+#  define ARX_BSEARCH_4(P) ARX_SNODE_2(P)(P)
+#  define ARX_BSEARCH_2(P) ARX_SNODE_1(P)
+
+#  define ARX_SNODE_1(P) ARX_IIF(P(1), 1, 2)
+#  define ARX_SNODE_2(P) ARX_IIF(P(2), ARX_SNODE_1, ARX_SNODE_3)
+#  define ARX_SNODE_3(P) ARX_IIF(P(3), 3, 4)
+#  define ARX_SNODE_4(P) ARX_IIF(P(4), ARX_SNODE_2, ARX_SNODE_6)
+#  define ARX_SNODE_5(P) ARX_IIF(P(5), 5, 6)
+#  define ARX_SNODE_6(P) ARX_IIF(P(6), ARX_SNODE_5, ARX_SNODE_7)
+#  define ARX_SNODE_7(P) ARX_IIF(P(7), 7, 8)
+
+
+/**
  * Converts the given INT (i.e. 0 to 256) to BOOL (i.e 0 or 1)
- * 
- * May have problems with mwerks compiler.
  */
 #  define ARX_BOOL(x) ARX_BOOL_I(x)
-#  define ARX_BOOL_I(x) ARX_BOOL_ ## x
+#  define ARX_BOOL_I(x) ARX_BOOL_II(ARX_BOOL_ ## x)
+#  define ARX_BOOL_II(res) res
+
 #  define ARX_BOOL_0 0
 #  define ARX_BOOL_1 1
 #  define ARX_BOOL_2 1
@@ -308,23 +412,874 @@
 
 
 /**
- * If cond is true (i.e. != 0) then evaluates to t, else to f.
- *
- * May have problems with edge compiler.
+ * Eats the following number when joined with it
  */
-#  define ARX_IF(cond, t, f) ARX_IF_I(ARX_BOOL(cond), t, f)
-#  define ARX_IF_I(bit, t, f) ARX_IF_II(bit, t, f)
-#  define ARX_IF_II(bit, t, f) ARX_IF_I_ ## bit(t, f)
-#  define ARX_IF_I_0(t, f) f
-#  define ARX_IF_I_1(t, f) t
+#  define ARX_INTERCEPT ARX_INTERCEPT_
+
+#  define ARX_INTERCEPT_0
+#  define ARX_INTERCEPT_1
+#  define ARX_INTERCEPT_2
+#  define ARX_INTERCEPT_3
+#  define ARX_INTERCEPT_4
+#  define ARX_INTERCEPT_5
+#  define ARX_INTERCEPT_6
+#  define ARX_INTERCEPT_7
+#  define ARX_INTERCEPT_8
+#  define ARX_INTERCEPT_9
+#  define ARX_INTERCEPT_10
+#  define ARX_INTERCEPT_11
+#  define ARX_INTERCEPT_12
+#  define ARX_INTERCEPT_13
+#  define ARX_INTERCEPT_14
+#  define ARX_INTERCEPT_15
+#  define ARX_INTERCEPT_16
+#  define ARX_INTERCEPT_17
+#  define ARX_INTERCEPT_18
+#  define ARX_INTERCEPT_19
+#  define ARX_INTERCEPT_20
+#  define ARX_INTERCEPT_21
+#  define ARX_INTERCEPT_22
+#  define ARX_INTERCEPT_23
+#  define ARX_INTERCEPT_24
+#  define ARX_INTERCEPT_25
+#  define ARX_INTERCEPT_26
+#  define ARX_INTERCEPT_27
+#  define ARX_INTERCEPT_28
+#  define ARX_INTERCEPT_29
+#  define ARX_INTERCEPT_30
+#  define ARX_INTERCEPT_31
+#  define ARX_INTERCEPT_32
+#  define ARX_INTERCEPT_33
+#  define ARX_INTERCEPT_34
+#  define ARX_INTERCEPT_35
+#  define ARX_INTERCEPT_36
+#  define ARX_INTERCEPT_37
+#  define ARX_INTERCEPT_38
+#  define ARX_INTERCEPT_39
+#  define ARX_INTERCEPT_40
+#  define ARX_INTERCEPT_41
+#  define ARX_INTERCEPT_42
+#  define ARX_INTERCEPT_43
+#  define ARX_INTERCEPT_44
+#  define ARX_INTERCEPT_45
+#  define ARX_INTERCEPT_46
+#  define ARX_INTERCEPT_47
+#  define ARX_INTERCEPT_48
+#  define ARX_INTERCEPT_49
+#  define ARX_INTERCEPT_50
+#  define ARX_INTERCEPT_51
+#  define ARX_INTERCEPT_52
+#  define ARX_INTERCEPT_53
+#  define ARX_INTERCEPT_54
+#  define ARX_INTERCEPT_55
+#  define ARX_INTERCEPT_56
+#  define ARX_INTERCEPT_57
+#  define ARX_INTERCEPT_58
+#  define ARX_INTERCEPT_59
+#  define ARX_INTERCEPT_60
+#  define ARX_INTERCEPT_61
+#  define ARX_INTERCEPT_62
+#  define ARX_INTERCEPT_63
+#  define ARX_INTERCEPT_64
+#  define ARX_INTERCEPT_65
+#  define ARX_INTERCEPT_66
+#  define ARX_INTERCEPT_67
+#  define ARX_INTERCEPT_68
+#  define ARX_INTERCEPT_69
+#  define ARX_INTERCEPT_70
+#  define ARX_INTERCEPT_71
+#  define ARX_INTERCEPT_72
+#  define ARX_INTERCEPT_73
+#  define ARX_INTERCEPT_74
+#  define ARX_INTERCEPT_75
+#  define ARX_INTERCEPT_76
+#  define ARX_INTERCEPT_77
+#  define ARX_INTERCEPT_78
+#  define ARX_INTERCEPT_79
+#  define ARX_INTERCEPT_80
+#  define ARX_INTERCEPT_81
+#  define ARX_INTERCEPT_82
+#  define ARX_INTERCEPT_83
+#  define ARX_INTERCEPT_84
+#  define ARX_INTERCEPT_85
+#  define ARX_INTERCEPT_86
+#  define ARX_INTERCEPT_87
+#  define ARX_INTERCEPT_88
+#  define ARX_INTERCEPT_89
+#  define ARX_INTERCEPT_90
+#  define ARX_INTERCEPT_91
+#  define ARX_INTERCEPT_92
+#  define ARX_INTERCEPT_93
+#  define ARX_INTERCEPT_94
+#  define ARX_INTERCEPT_95
+#  define ARX_INTERCEPT_96
+#  define ARX_INTERCEPT_97
+#  define ARX_INTERCEPT_98
+#  define ARX_INTERCEPT_99
+#  define ARX_INTERCEPT_100
+#  define ARX_INTERCEPT_101
+#  define ARX_INTERCEPT_102
+#  define ARX_INTERCEPT_103
+#  define ARX_INTERCEPT_104
+#  define ARX_INTERCEPT_105
+#  define ARX_INTERCEPT_106
+#  define ARX_INTERCEPT_107
+#  define ARX_INTERCEPT_108
+#  define ARX_INTERCEPT_109
+#  define ARX_INTERCEPT_110
+#  define ARX_INTERCEPT_111
+#  define ARX_INTERCEPT_112
+#  define ARX_INTERCEPT_113
+#  define ARX_INTERCEPT_114
+#  define ARX_INTERCEPT_115
+#  define ARX_INTERCEPT_116
+#  define ARX_INTERCEPT_117
+#  define ARX_INTERCEPT_118
+#  define ARX_INTERCEPT_119
+#  define ARX_INTERCEPT_120
+#  define ARX_INTERCEPT_121
+#  define ARX_INTERCEPT_122
+#  define ARX_INTERCEPT_123
+#  define ARX_INTERCEPT_124
+#  define ARX_INTERCEPT_125
+#  define ARX_INTERCEPT_126
+#  define ARX_INTERCEPT_127
+#  define ARX_INTERCEPT_128
+#  define ARX_INTERCEPT_129
+#  define ARX_INTERCEPT_130
+#  define ARX_INTERCEPT_131
+#  define ARX_INTERCEPT_132
+#  define ARX_INTERCEPT_133
+#  define ARX_INTERCEPT_134
+#  define ARX_INTERCEPT_135
+#  define ARX_INTERCEPT_136
+#  define ARX_INTERCEPT_137
+#  define ARX_INTERCEPT_138
+#  define ARX_INTERCEPT_139
+#  define ARX_INTERCEPT_140
+#  define ARX_INTERCEPT_141
+#  define ARX_INTERCEPT_142
+#  define ARX_INTERCEPT_143
+#  define ARX_INTERCEPT_144
+#  define ARX_INTERCEPT_145
+#  define ARX_INTERCEPT_146
+#  define ARX_INTERCEPT_147
+#  define ARX_INTERCEPT_148
+#  define ARX_INTERCEPT_149
+#  define ARX_INTERCEPT_150
+#  define ARX_INTERCEPT_151
+#  define ARX_INTERCEPT_152
+#  define ARX_INTERCEPT_153
+#  define ARX_INTERCEPT_154
+#  define ARX_INTERCEPT_155
+#  define ARX_INTERCEPT_156
+#  define ARX_INTERCEPT_157
+#  define ARX_INTERCEPT_158
+#  define ARX_INTERCEPT_159
+#  define ARX_INTERCEPT_160
+#  define ARX_INTERCEPT_161
+#  define ARX_INTERCEPT_162
+#  define ARX_INTERCEPT_163
+#  define ARX_INTERCEPT_164
+#  define ARX_INTERCEPT_165
+#  define ARX_INTERCEPT_166
+#  define ARX_INTERCEPT_167
+#  define ARX_INTERCEPT_168
+#  define ARX_INTERCEPT_169
+#  define ARX_INTERCEPT_170
+#  define ARX_INTERCEPT_171
+#  define ARX_INTERCEPT_172
+#  define ARX_INTERCEPT_173
+#  define ARX_INTERCEPT_174
+#  define ARX_INTERCEPT_175
+#  define ARX_INTERCEPT_176
+#  define ARX_INTERCEPT_177
+#  define ARX_INTERCEPT_178
+#  define ARX_INTERCEPT_179
+#  define ARX_INTERCEPT_180
+#  define ARX_INTERCEPT_181
+#  define ARX_INTERCEPT_182
+#  define ARX_INTERCEPT_183
+#  define ARX_INTERCEPT_184
+#  define ARX_INTERCEPT_185
+#  define ARX_INTERCEPT_186
+#  define ARX_INTERCEPT_187
+#  define ARX_INTERCEPT_188
+#  define ARX_INTERCEPT_189
+#  define ARX_INTERCEPT_190
+#  define ARX_INTERCEPT_191
+#  define ARX_INTERCEPT_192
+#  define ARX_INTERCEPT_193
+#  define ARX_INTERCEPT_194
+#  define ARX_INTERCEPT_195
+#  define ARX_INTERCEPT_196
+#  define ARX_INTERCEPT_197
+#  define ARX_INTERCEPT_198
+#  define ARX_INTERCEPT_199
+#  define ARX_INTERCEPT_200
+#  define ARX_INTERCEPT_201
+#  define ARX_INTERCEPT_202
+#  define ARX_INTERCEPT_203
+#  define ARX_INTERCEPT_204
+#  define ARX_INTERCEPT_205
+#  define ARX_INTERCEPT_206
+#  define ARX_INTERCEPT_207
+#  define ARX_INTERCEPT_208
+#  define ARX_INTERCEPT_209
+#  define ARX_INTERCEPT_210
+#  define ARX_INTERCEPT_211
+#  define ARX_INTERCEPT_212
+#  define ARX_INTERCEPT_213
+#  define ARX_INTERCEPT_214
+#  define ARX_INTERCEPT_215
+#  define ARX_INTERCEPT_216
+#  define ARX_INTERCEPT_217
+#  define ARX_INTERCEPT_218
+#  define ARX_INTERCEPT_219
+#  define ARX_INTERCEPT_220
+#  define ARX_INTERCEPT_221
+#  define ARX_INTERCEPT_222
+#  define ARX_INTERCEPT_223
+#  define ARX_INTERCEPT_224
+#  define ARX_INTERCEPT_225
+#  define ARX_INTERCEPT_226
+#  define ARX_INTERCEPT_227
+#  define ARX_INTERCEPT_228
+#  define ARX_INTERCEPT_229
+#  define ARX_INTERCEPT_230
+#  define ARX_INTERCEPT_231
+#  define ARX_INTERCEPT_232
+#  define ARX_INTERCEPT_233
+#  define ARX_INTERCEPT_234
+#  define ARX_INTERCEPT_235
+#  define ARX_INTERCEPT_236
+#  define ARX_INTERCEPT_237
+#  define ARX_INTERCEPT_238
+#  define ARX_INTERCEPT_239
+#  define ARX_INTERCEPT_240
+#  define ARX_INTERCEPT_241
+#  define ARX_INTERCEPT_242
+#  define ARX_INTERCEPT_243
+#  define ARX_INTERCEPT_244
+#  define ARX_INTERCEPT_245
+#  define ARX_INTERCEPT_246
+#  define ARX_INTERCEPT_247
+#  define ARX_INTERCEPT_248
+#  define ARX_INTERCEPT_249
+#  define ARX_INTERCEPT_250
+#  define ARX_INTERCEPT_251
+#  define ARX_INTERCEPT_252
+#  define ARX_INTERCEPT_253
+#  define ARX_INTERCEPT_254
+#  define ARX_INTERCEPT_255
+#  define ARX_INTERCEPT_256
+
+
+/**
+ * If BIT is 1 then evaluates to T, else to F.
+ */
+#  define ARX_IIF(BIT, T, F) ARX_IIF_I(BIT, T, F)
+#  define ARX_IIF_I(BIT, T, F) ARX_IIF_II(ARX_IIF_ ## BIT(T, F))
+#  define ARX_IIF_II(res) res
+#  define ARX_IIF_0(T, F) F
+#  define ARX_IIF_1(T, F) T
+
+
+/**
+ * If COND is true (i.e. != 0) then evaluates to T, else to F.
+ */
+#  define ARX_IF(COND, T, F) ARX_IIF(ARX_BOOL(COND), T, F)
+
+
+/**
+ * Bitor
+ */
+#  define ARX_BITOR(x, y) ARX_BITOR_I(x, y)
+#  define ARX_BITOR_I(x, y) ARX_BITOR_II(ARX_BITOR_ ## x ## y)
+#  define ARX_BITOR_II(res) res
+
+#  define ARX_BITOR_00 0
+#  define ARX_BITOR_01 1
+#  define ARX_BITOR_10 1
+#  define ARX_BITOR_11 1
+
+
+/**
+ * Bitand
+ */
+#  define ARX_BITAND(x, y) ARX_BITAND_I(x, y)
+#  define ARX_BITAND_I(x, y) ARX_BITAND_II(ARX_BITAND_ ## x ## y)
+#  define ARX_BITAND_II(res) res
+
+#  define ARX_BITAND_00 0
+#  define ARX_BITAND_01 0
+#  define ARX_BITAND_10 0
+#  define ARX_BITAND_11 1
+
+
+/**
+ * Bitnot
+ */
+#  define ARX_BITNOT(x) ARX_BITNOT_I(x)
+#  define ARX_BITNOT_I(x) ARX_BITNOT_II(ARX_BITNOT_ ## x)
+#  define ARX_BITNOT_II(id) id
+
+#  define ARX_BITNOT_0 1
+#  define ARX_BITNOT_1 0
+
+
+/**
+ * Or
+ */
+#  define ARX_OR(p, q) ARX_BITOR(ARX_BOOL(p), ARX_BOOL(q))
+
+
+/**
+ * And
+ */
+#  define ARX_AND(p, q) ARX_BITAND(ARX_BOOL(p), ARX_BOOL(q))
+
+
+/**
+ * Not
+ */
+#  define ARX_NOT(x) ARX_BITNOT(ARX_BOOL(x))
+
+
+/**
+ * Not equal
+ */
+#  define ARX_NOT_EQUAL(x, y) ARX_NOT_EQUAL_I(x, y)
+#  define ARX_NOT_EQUAL_I(x, y) ARX_JOIN(ARX_NOT_EQUAL_CHECK_, ARX_NOT_EQUAL_ ## x(0, ARX_NOT_EQUAL_ ## y))
+
+#  define ARX_NOT_EQUAL_CHECK_ARX_NIL 1
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_0(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_1(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_2(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_3(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_4(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_5(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_6(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_7(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_8(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_9(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_10(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_11(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_12(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_13(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_14(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_15(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_16(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_17(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_18(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_19(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_20(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_21(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_22(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_23(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_24(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_25(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_26(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_27(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_28(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_29(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_30(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_31(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_32(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_33(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_34(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_35(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_36(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_37(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_38(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_39(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_40(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_41(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_42(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_43(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_44(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_45(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_46(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_47(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_48(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_49(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_50(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_51(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_52(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_53(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_54(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_55(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_56(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_57(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_58(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_59(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_60(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_61(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_62(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_63(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_64(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_65(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_66(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_67(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_68(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_69(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_70(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_71(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_72(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_73(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_74(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_75(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_76(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_77(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_78(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_79(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_80(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_81(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_82(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_83(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_84(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_85(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_86(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_87(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_88(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_89(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_90(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_91(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_92(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_93(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_94(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_95(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_96(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_97(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_98(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_99(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_100(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_101(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_102(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_103(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_104(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_105(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_106(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_107(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_108(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_109(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_110(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_111(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_112(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_113(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_114(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_115(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_116(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_117(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_118(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_119(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_120(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_121(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_122(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_123(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_124(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_125(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_126(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_127(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_128(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_129(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_130(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_131(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_132(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_133(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_134(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_135(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_136(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_137(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_138(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_139(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_140(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_141(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_142(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_143(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_144(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_145(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_146(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_147(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_148(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_149(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_150(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_151(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_152(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_153(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_154(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_155(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_156(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_157(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_158(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_159(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_160(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_161(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_162(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_163(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_164(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_165(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_166(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_167(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_168(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_169(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_170(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_171(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_172(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_173(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_174(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_175(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_176(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_177(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_178(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_179(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_180(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_181(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_182(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_183(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_184(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_185(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_186(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_187(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_188(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_189(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_190(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_191(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_192(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_193(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_194(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_195(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_196(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_197(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_198(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_199(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_200(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_201(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_202(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_203(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_204(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_205(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_206(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_207(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_208(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_209(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_210(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_211(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_212(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_213(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_214(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_215(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_216(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_217(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_218(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_219(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_220(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_221(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_222(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_223(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_224(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_225(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_226(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_227(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_228(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_229(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_230(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_231(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_232(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_233(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_234(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_235(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_236(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_237(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_238(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_239(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_240(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_241(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_242(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_243(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_244(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_245(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_246(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_247(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_248(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_249(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_250(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_251(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_252(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_253(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_254(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_255(c, y) 0
+#  define ARX_NOT_EQUAL_CHECK_ARX_NOT_EQUAL_256(c, y) 0
+
+#  define ARX_NOT_EQUAL_0(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_1(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_2(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_3(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_4(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_5(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_6(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_7(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_8(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_9(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_10(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_11(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_12(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_13(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_14(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_15(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_16(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_17(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_18(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_19(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_20(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_21(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_22(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_23(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_24(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_25(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_26(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_27(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_28(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_29(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_30(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_31(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_32(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_33(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_34(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_35(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_36(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_37(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_38(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_39(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_40(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_41(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_42(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_43(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_44(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_45(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_46(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_47(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_48(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_49(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_50(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_51(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_52(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_53(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_54(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_55(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_56(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_57(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_58(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_59(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_60(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_61(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_62(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_63(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_64(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_65(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_66(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_67(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_68(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_69(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_70(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_71(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_72(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_73(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_74(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_75(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_76(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_77(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_78(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_79(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_80(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_81(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_82(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_83(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_84(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_85(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_86(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_87(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_88(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_89(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_90(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_91(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_92(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_93(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_94(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_95(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_96(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_97(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_98(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_99(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_100(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_101(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_102(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_103(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_104(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_105(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_106(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_107(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_108(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_109(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_110(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_111(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_112(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_113(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_114(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_115(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_116(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_117(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_118(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_119(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_120(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_121(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_122(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_123(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_124(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_125(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_126(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_127(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_128(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_129(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_130(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_131(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_132(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_133(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_134(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_135(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_136(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_137(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_138(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_139(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_140(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_141(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_142(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_143(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_144(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_145(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_146(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_147(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_148(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_149(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_150(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_151(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_152(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_153(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_154(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_155(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_156(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_157(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_158(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_159(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_160(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_161(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_162(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_163(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_164(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_165(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_166(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_167(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_168(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_169(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_170(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_171(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_172(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_173(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_174(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_175(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_176(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_177(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_178(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_179(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_180(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_181(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_182(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_183(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_184(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_185(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_186(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_187(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_188(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_189(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_190(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_191(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_192(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_193(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_194(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_195(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_196(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_197(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_198(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_199(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_200(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_201(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_202(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_203(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_204(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_205(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_206(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_207(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_208(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_209(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_210(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_211(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_212(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_213(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_214(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_215(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_216(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_217(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_218(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_219(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_220(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_221(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_222(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_223(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_224(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_225(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_226(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_227(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_228(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_229(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_230(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_231(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_232(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_233(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_234(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_235(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_236(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_237(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_238(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_239(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_240(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_241(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_242(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_243(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_244(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_245(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_246(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_247(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_248(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_249(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_250(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_251(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_252(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_253(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_254(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_255(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+#  define ARX_NOT_EQUAL_256(c, y) ARX_IIF(c, ARX_NIL, y(1, ARX_NIL))
+
+
+/**
+ * Equal
+ */
+#  define ARX_EQUAL(x, y) ARX_BITNOT(ARX_NOT_EQUAL(x, y))
 
 
 /**
  * Returns the size of a given array.
  * 
  * Array must be in the form <tt>(SIZE, (ELEMENTS))</tt>
- * 
- * Relies on ARX_TUPLE_ELEM, may have problems with edge compiler.
  */
 #  define ARX_ARRAY_SIZE(array) ARX_TUPLE_ELEM(2, 0, array)
 
@@ -333,8 +1288,6 @@
  * Returns the data of a given array as a tuple.
  *
  * Array must be in the form <tt>(SIZE, (ELEMENTS))</tt>
- *
- * May have problems with edge compiler.
  */
 #  define ARX_ARRAY_DATA(array) ARX_TUPLE_ELEM(2, 1, array)
 
@@ -344,18 +1297,48 @@
  *
  * @param i index of an element needed
  * @param array array to extract element from
- * 
- * May have problems with edge compiler.
  */
 #  define ARX_ARRAY_ELEM(i, array) ARX_TUPLE_ELEM(ARX_ARRAY_SIZE(array), i, ARX_ARRAY_DATA(array))
 
 
 /**
  * Reverses the given array.
- *
- * May have problems with edge compiler.
  */
 #  define ARX_ARRAY_REVERSE(array) (ARX_ARRAY_SIZE(array), ARX_TUPLE_REVERSE(ARX_ARRAY_SIZE(array), ARX_ARRAY_DATA(array)))
+
+
+/**
+ * Generator for ARX_TYPLE_EAT_XX macro
+ */
+#  define ARX_TUPLE_EAT(size) ARX_TUPLE_EAT_I(size)
+#  define ARX_TUPLE_EAT_I(size) ARX_TUPLE_EAT_ ## size
+
+#  define ARX_TUPLE_EAT_0()
+#  define ARX_TUPLE_EAT_1(a)
+#  define ARX_TUPLE_EAT_2(a, b)
+#  define ARX_TUPLE_EAT_3(a, b, c)
+#  define ARX_TUPLE_EAT_4(a, b, c, d)
+#  define ARX_TUPLE_EAT_5(a, b, c, d, e)
+#  define ARX_TUPLE_EAT_6(a, b, c, d, e, f)
+#  define ARX_TUPLE_EAT_7(a, b, c, d, e, f, g)
+#  define ARX_TUPLE_EAT_8(a, b, c, d, e, f, g, h)
+#  define ARX_TUPLE_EAT_9(a, b, c, d, e, f, g, h, i)
+#  define ARX_TUPLE_EAT_10(a, b, c, d, e, f, g, h, i, j)
+#  define ARX_TUPLE_EAT_11(a, b, c, d, e, f, g, h, i, j, k)
+#  define ARX_TUPLE_EAT_12(a, b, c, d, e, f, g, h, i, j, k, l)
+#  define ARX_TUPLE_EAT_13(a, b, c, d, e, f, g, h, i, j, k, l, m)
+#  define ARX_TUPLE_EAT_14(a, b, c, d, e, f, g, h, i, j, k, l, m, n)
+#  define ARX_TUPLE_EAT_15(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
+#  define ARX_TUPLE_EAT_16(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)
+#  define ARX_TUPLE_EAT_17(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
+#  define ARX_TUPLE_EAT_18(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)
+#  define ARX_TUPLE_EAT_19(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)
+#  define ARX_TUPLE_EAT_20(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)
+#  define ARX_TUPLE_EAT_21(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)
+#  define ARX_TUPLE_EAT_22(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)
+#  define ARX_TUPLE_EAT_23(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w)
+#  define ARX_TUPLE_EAT_24(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x)
+#  define ARX_TUPLE_EAT_25(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y)
 
 
 /**
@@ -364,7 +1347,6 @@
 #  define ARX_TUPLE_REVERSE(size, tuple) ARX_TUPLE_REVERSE_I(size, tuple)
 #  define ARX_TUPLE_REVERSE_I(s, t) ARX_TUPLE_REVERSE_II(ARX_TUPLE_REVERSE_ ## s t)
 #  define ARX_TUPLE_REVERSE_II(res) res
-
 
 #  define ARX_TUPLE_REVERSE_0() ()
 #  define ARX_TUPLE_REVERSE_1(a) (a)
@@ -400,40 +1382,38 @@
  * @param size size of a given tuple
  * @param index index of an element needed
  * @param tuple tuple to extract element from
- * 
- * May have problems with edge, mwerks, and older versions of msvc compilers.
  */
 #  define ARX_TUPLE_ELEM(size, index, tuple) ARX_TUPLE_ELEM_I(size, index, tuple)
 #  define ARX_TUPLE_ELEM_I(s, i, t) ARX_TUPLE_ELEM_II(ARX_TUPLE_ELEM_ ## s ## _ ## i t)
 #  define ARX_TUPLE_ELEM_II(res) res
 
 #  define ARX_TUPLE_ELEM_1_0(a) a
-#
+ 
 #  define ARX_TUPLE_ELEM_2_0(a, b) a
 #  define ARX_TUPLE_ELEM_2_1(a, b) b
-#
+ 
 #  define ARX_TUPLE_ELEM_3_0(a, b, c) a
 #  define ARX_TUPLE_ELEM_3_1(a, b, c) b
 #  define ARX_TUPLE_ELEM_3_2(a, b, c) c
-#
+ 
 #  define ARX_TUPLE_ELEM_4_0(a, b, c, d) a
 #  define ARX_TUPLE_ELEM_4_1(a, b, c, d) b
 #  define ARX_TUPLE_ELEM_4_2(a, b, c, d) c
 #  define ARX_TUPLE_ELEM_4_3(a, b, c, d) d
-#
+ 
 #  define ARX_TUPLE_ELEM_5_0(a, b, c, d, e) a
 #  define ARX_TUPLE_ELEM_5_1(a, b, c, d, e) b
 #  define ARX_TUPLE_ELEM_5_2(a, b, c, d, e) c
 #  define ARX_TUPLE_ELEM_5_3(a, b, c, d, e) d
 #  define ARX_TUPLE_ELEM_5_4(a, b, c, d, e) e
-#
+ 
 #  define ARX_TUPLE_ELEM_6_0(a, b, c, d, e, f) a
 #  define ARX_TUPLE_ELEM_6_1(a, b, c, d, e, f) b
 #  define ARX_TUPLE_ELEM_6_2(a, b, c, d, e, f) c
 #  define ARX_TUPLE_ELEM_6_3(a, b, c, d, e, f) d
 #  define ARX_TUPLE_ELEM_6_4(a, b, c, d, e, f) e
 #  define ARX_TUPLE_ELEM_6_5(a, b, c, d, e, f) f
-#
+ 
 #  define ARX_TUPLE_ELEM_7_0(a, b, c, d, e, f, g) a
 #  define ARX_TUPLE_ELEM_7_1(a, b, c, d, e, f, g) b
 #  define ARX_TUPLE_ELEM_7_2(a, b, c, d, e, f, g) c
@@ -441,7 +1421,7 @@
 #  define ARX_TUPLE_ELEM_7_4(a, b, c, d, e, f, g) e
 #  define ARX_TUPLE_ELEM_7_5(a, b, c, d, e, f, g) f
 #  define ARX_TUPLE_ELEM_7_6(a, b, c, d, e, f, g) g
-#
+ 
 #  define ARX_TUPLE_ELEM_8_0(a, b, c, d, e, f, g, h) a
 #  define ARX_TUPLE_ELEM_8_1(a, b, c, d, e, f, g, h) b
 #  define ARX_TUPLE_ELEM_8_2(a, b, c, d, e, f, g, h) c
@@ -450,7 +1430,7 @@
 #  define ARX_TUPLE_ELEM_8_5(a, b, c, d, e, f, g, h) f
 #  define ARX_TUPLE_ELEM_8_6(a, b, c, d, e, f, g, h) g
 #  define ARX_TUPLE_ELEM_8_7(a, b, c, d, e, f, g, h) h
-#
+ 
 #  define ARX_TUPLE_ELEM_9_0(a, b, c, d, e, f, g, h, i) a
 #  define ARX_TUPLE_ELEM_9_1(a, b, c, d, e, f, g, h, i) b
 #  define ARX_TUPLE_ELEM_9_2(a, b, c, d, e, f, g, h, i) c
@@ -460,7 +1440,7 @@
 #  define ARX_TUPLE_ELEM_9_6(a, b, c, d, e, f, g, h, i) g
 #  define ARX_TUPLE_ELEM_9_7(a, b, c, d, e, f, g, h, i) h
 #  define ARX_TUPLE_ELEM_9_8(a, b, c, d, e, f, g, h, i) i
-#
+ 
 #  define ARX_TUPLE_ELEM_10_0(a, b, c, d, e, f, g, h, i, j) a
 #  define ARX_TUPLE_ELEM_10_1(a, b, c, d, e, f, g, h, i, j) b
 #  define ARX_TUPLE_ELEM_10_2(a, b, c, d, e, f, g, h, i, j) c
@@ -471,7 +1451,7 @@
 #  define ARX_TUPLE_ELEM_10_7(a, b, c, d, e, f, g, h, i, j) h
 #  define ARX_TUPLE_ELEM_10_8(a, b, c, d, e, f, g, h, i, j) i
 #  define ARX_TUPLE_ELEM_10_9(a, b, c, d, e, f, g, h, i, j) j
-#
+ 
 #  define ARX_TUPLE_ELEM_11_0(a, b, c, d, e, f, g, h, i, j, k) a
 #  define ARX_TUPLE_ELEM_11_1(a, b, c, d, e, f, g, h, i, j, k) b
 #  define ARX_TUPLE_ELEM_11_2(a, b, c, d, e, f, g, h, i, j, k) c
@@ -483,7 +1463,7 @@
 #  define ARX_TUPLE_ELEM_11_8(a, b, c, d, e, f, g, h, i, j, k) i
 #  define ARX_TUPLE_ELEM_11_9(a, b, c, d, e, f, g, h, i, j, k) j
 #  define ARX_TUPLE_ELEM_11_10(a, b, c, d, e, f, g, h, i, j, k) k
-#
+ 
 #  define ARX_TUPLE_ELEM_12_0(a, b, c, d, e, f, g, h, i, j, k, l) a
 #  define ARX_TUPLE_ELEM_12_1(a, b, c, d, e, f, g, h, i, j, k, l) b
 #  define ARX_TUPLE_ELEM_12_2(a, b, c, d, e, f, g, h, i, j, k, l) c
@@ -496,7 +1476,7 @@
 #  define ARX_TUPLE_ELEM_12_9(a, b, c, d, e, f, g, h, i, j, k, l) j
 #  define ARX_TUPLE_ELEM_12_10(a, b, c, d, e, f, g, h, i, j, k, l) k
 #  define ARX_TUPLE_ELEM_12_11(a, b, c, d, e, f, g, h, i, j, k, l) l
-#
+ 
 #  define ARX_TUPLE_ELEM_13_0(a, b, c, d, e, f, g, h, i, j, k, l, m) a
 #  define ARX_TUPLE_ELEM_13_1(a, b, c, d, e, f, g, h, i, j, k, l, m) b
 #  define ARX_TUPLE_ELEM_13_2(a, b, c, d, e, f, g, h, i, j, k, l, m) c
@@ -510,7 +1490,7 @@
 #  define ARX_TUPLE_ELEM_13_10(a, b, c, d, e, f, g, h, i, j, k, l, m) k
 #  define ARX_TUPLE_ELEM_13_11(a, b, c, d, e, f, g, h, i, j, k, l, m) l
 #  define ARX_TUPLE_ELEM_13_12(a, b, c, d, e, f, g, h, i, j, k, l, m) m
-#
+ 
 #  define ARX_TUPLE_ELEM_14_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n) a
 #  define ARX_TUPLE_ELEM_14_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n) b
 #  define ARX_TUPLE_ELEM_14_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n) c
@@ -525,7 +1505,7 @@
 #  define ARX_TUPLE_ELEM_14_11(a, b, c, d, e, f, g, h, i, j, k, l, m, n) l
 #  define ARX_TUPLE_ELEM_14_12(a, b, c, d, e, f, g, h, i, j, k, l, m, n) m
 #  define ARX_TUPLE_ELEM_14_13(a, b, c, d, e, f, g, h, i, j, k, l, m, n) n
-#
+  
 #  define ARX_TUPLE_ELEM_15_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) a
 #  define ARX_TUPLE_ELEM_15_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) b
 #  define ARX_TUPLE_ELEM_15_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) c
@@ -541,7 +1521,7 @@
 #  define ARX_TUPLE_ELEM_15_12(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) m
 #  define ARX_TUPLE_ELEM_15_13(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) n
 #  define ARX_TUPLE_ELEM_15_14(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) o
-#
+ 
 #  define ARX_TUPLE_ELEM_16_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) a
 #  define ARX_TUPLE_ELEM_16_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) b
 #  define ARX_TUPLE_ELEM_16_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) c
@@ -558,7 +1538,7 @@
 #  define ARX_TUPLE_ELEM_16_13(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) n
 #  define ARX_TUPLE_ELEM_16_14(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) o
 #  define ARX_TUPLE_ELEM_16_15(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) p
-#
+ 
 #  define ARX_TUPLE_ELEM_17_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) a
 #  define ARX_TUPLE_ELEM_17_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) b
 #  define ARX_TUPLE_ELEM_17_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) c
@@ -576,7 +1556,7 @@
 #  define ARX_TUPLE_ELEM_17_14(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) o
 #  define ARX_TUPLE_ELEM_17_15(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) p
 #  define ARX_TUPLE_ELEM_17_16(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) q
-#
+ 
 #  define ARX_TUPLE_ELEM_18_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) a
 #  define ARX_TUPLE_ELEM_18_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) b
 #  define ARX_TUPLE_ELEM_18_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) c
@@ -595,7 +1575,7 @@
 #  define ARX_TUPLE_ELEM_18_15(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) p
 #  define ARX_TUPLE_ELEM_18_16(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) q
 #  define ARX_TUPLE_ELEM_18_17(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) r
-#
+ 
 #  define ARX_TUPLE_ELEM_19_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) a
 #  define ARX_TUPLE_ELEM_19_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) b
 #  define ARX_TUPLE_ELEM_19_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) c
@@ -615,7 +1595,7 @@
 #  define ARX_TUPLE_ELEM_19_16(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) q
 #  define ARX_TUPLE_ELEM_19_17(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) r
 #  define ARX_TUPLE_ELEM_19_18(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) s
-#
+ 
 #  define ARX_TUPLE_ELEM_20_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) a
 #  define ARX_TUPLE_ELEM_20_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) b
 #  define ARX_TUPLE_ELEM_20_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) c
@@ -636,7 +1616,7 @@
 #  define ARX_TUPLE_ELEM_20_17(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) r
 #  define ARX_TUPLE_ELEM_20_18(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) s
 #  define ARX_TUPLE_ELEM_20_19(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) t
-#
+ 
 #  define ARX_TUPLE_ELEM_21_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) a
 #  define ARX_TUPLE_ELEM_21_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) b
 #  define ARX_TUPLE_ELEM_21_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) c
@@ -658,7 +1638,7 @@
 #  define ARX_TUPLE_ELEM_21_18(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) s
 #  define ARX_TUPLE_ELEM_21_19(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) t
 #  define ARX_TUPLE_ELEM_21_20(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) u
-#
+ 
 #  define ARX_TUPLE_ELEM_22_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) a
 #  define ARX_TUPLE_ELEM_22_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) b
 #  define ARX_TUPLE_ELEM_22_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) c
@@ -681,7 +1661,7 @@
 #  define ARX_TUPLE_ELEM_22_19(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) t
 #  define ARX_TUPLE_ELEM_22_20(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) u
 #  define ARX_TUPLE_ELEM_22_21(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) v
-#
+ 
 #  define ARX_TUPLE_ELEM_23_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) a
 #  define ARX_TUPLE_ELEM_23_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) b
 #  define ARX_TUPLE_ELEM_23_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) c
@@ -705,7 +1685,7 @@
 #  define ARX_TUPLE_ELEM_23_20(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) u
 #  define ARX_TUPLE_ELEM_23_21(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) v
 #  define ARX_TUPLE_ELEM_23_22(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) w
-#
+ 
 #  define ARX_TUPLE_ELEM_24_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x) a
 #  define ARX_TUPLE_ELEM_24_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x) b
 #  define ARX_TUPLE_ELEM_24_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x) c
@@ -730,7 +1710,7 @@
 #  define ARX_TUPLE_ELEM_24_21(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x) v
 #  define ARX_TUPLE_ELEM_24_22(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x) w
 #  define ARX_TUPLE_ELEM_24_23(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x) x
-#
+ 
 #  define ARX_TUPLE_ELEM_25_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y) a
 #  define ARX_TUPLE_ELEM_25_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y) b
 #  define ARX_TUPLE_ELEM_25_2(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y) c
@@ -759,18 +1739,24 @@
 
 #endif // ARX_USE_BOOST
 
-
-#define ARX_COMMA ,
-#define ARX_LPAREN (
-#define ARX_RPAREN )
-
-#define ARX_EMPTY
-
 #define ARX_EMPTY_IT(ARG) ARX_EMPTY
 #define ARX_IDENTITY(ARG) ARG
 #define ARX_PAREN_IT(ARG) (ARG)
 #define ARX_BRACK_IT(ARG) [ARG]
 #define ARX_ABRACK_IT(ARG) <ARG>
+
+
+/**
+ * Joins 3 arguments together
+ */
+#define ARX_JOIN_3(a, b, c) ARX_JOIN(a, ARX_JOIN(b, c))
+
+
+/**
+ * Joins 4 arguments together
+ */
+#define ARX_JOIN_4(a, b, c, d) ARX_JOIN(a, ARX_JOIN_3(b, c, d))
+
 
 /**
  * Array of indexes
@@ -807,73 +1793,111 @@
 
 
 /**
- * Array foreach macro
+ * Array foreach macro, max depth = 3
  */
-#define ARX_ARRAY_FOREACH(ARRAY, M, ARG) ARX_ARRAY_FOREACH_OO(ARX_ARRAY_SIZE(ARRAY), ARX_ARRAY_REVERSE(ARRAY), M, ARG)
-#define ARX_ARRAY_FOREACH_OO(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH_I(SIZE, ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_I(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH_II(ARX_ARRAY_FOREACH_ ## SIZE (ARRAY, M, ARG))
-#define ARX_ARRAY_FOREACH_II(res) res
+#if 0
+#  define ARX_ARRAY_FOREACH(ARRAY, M, ARG)
+#endif
 
-#define ARX_ARRAY_FOREACH_1(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(0, ARRAY), ARG)
-#define ARX_ARRAY_FOREACH_2(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(1, ARRAY), ARG) ARX_ARRAY_FOREACH_1(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_3(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(2, ARRAY), ARG) ARX_ARRAY_FOREACH_2(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_4(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(3, ARRAY), ARG) ARX_ARRAY_FOREACH_3(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_5(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(4, ARRAY), ARG) ARX_ARRAY_FOREACH_4(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_6(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(5, ARRAY), ARG) ARX_ARRAY_FOREACH_5(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_7(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(6, ARRAY), ARG) ARX_ARRAY_FOREACH_6(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_8(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(7, ARRAY), ARG) ARX_ARRAY_FOREACH_7(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_9(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(8, ARRAY), ARG) ARX_ARRAY_FOREACH_8(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_10(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(9, ARRAY), ARG) ARX_ARRAY_FOREACH_9(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_11(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(10, ARRAY), ARG) ARX_ARRAY_FOREACH_10(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_12(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(11, ARRAY), ARG) ARX_ARRAY_FOREACH_11(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_13(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(12, ARRAY), ARG) ARX_ARRAY_FOREACH_12(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_14(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(13, ARRAY), ARG) ARX_ARRAY_FOREACH_13(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_15(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(14, ARRAY), ARG) ARX_ARRAY_FOREACH_14(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_16(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(15, ARRAY), ARG) ARX_ARRAY_FOREACH_15(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_17(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(16, ARRAY), ARG) ARX_ARRAY_FOREACH_16(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_18(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(17, ARRAY), ARG) ARX_ARRAY_FOREACH_17(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_19(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(18, ARRAY), ARG) ARX_ARRAY_FOREACH_18(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_20(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(19, ARRAY), ARG) ARX_ARRAY_FOREACH_19(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_21(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(20, ARRAY), ARG) ARX_ARRAY_FOREACH_20(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_22(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(21, ARRAY), ARG) ARX_ARRAY_FOREACH_21(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_23(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(22, ARRAY), ARG) ARX_ARRAY_FOREACH_22(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_24(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(23, ARRAY), ARG) ARX_ARRAY_FOREACH_23(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH_25(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(24, ARRAY), ARG) ARX_ARRAY_FOREACH_24(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH ARX_JOIN(ARX_ARRAY_FOREACH_, ARX_AUTO_REC(ARX_ARRAY_FOREACH_P, 4))
 
+#define ARX_ARRAY_FOREACH_P(n) ARX_JOIN(ARX_ARRAY_FOREACH_CHECK_, ARX_ARRAY_FOREACH_ ## n((1, (0)), ARX_NIL ARX_TUPLE_EAT_2, ARX_NIL))
 
-/**
- * Array foreach macro, for nested cycles
- */
-#define ARX_ARRAY_FOREACH2(ARRAY, M, ARG) ARX_ARRAY_FOREACH2_OO(ARX_ARRAY_SIZE(ARRAY), ARX_ARRAY_REVERSE(ARRAY), M, ARG)
-#define ARX_ARRAY_FOREACH2_OO(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH2_I(SIZE, ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_I(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH2_II(ARX_ARRAY_FOREACH2_ ## SIZE (ARRAY, M, ARG))
-#define ARX_ARRAY_FOREACH2_II(res) res
+#define ARX_ARRAY_FOREACH_CHECK_ARX_NIL 1
+#define ARX_ARRAY_FOREACH_CHECK_ARX_ARRAY_FOREACH_1(ARRAY, M, ARG) 0
+#define ARX_ARRAY_FOREACH_CHECK_ARX_ARRAY_FOREACH_2(ARRAY, M, ARG) 0
+#define ARX_ARRAY_FOREACH_CHECK_ARX_ARRAY_FOREACH_3(ARRAY, M, ARG) 0
 
-#define ARX_ARRAY_FOREACH2_1(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(0, ARRAY), ARG)
-#define ARX_ARRAY_FOREACH2_2(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(1, ARRAY), ARG) ARX_ARRAY_FOREACH2_1(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_3(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(2, ARRAY), ARG) ARX_ARRAY_FOREACH2_2(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_4(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(3, ARRAY), ARG) ARX_ARRAY_FOREACH2_3(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_5(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(4, ARRAY), ARG) ARX_ARRAY_FOREACH2_4(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_6(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(5, ARRAY), ARG) ARX_ARRAY_FOREACH2_5(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_7(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(6, ARRAY), ARG) ARX_ARRAY_FOREACH2_6(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_8(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(7, ARRAY), ARG) ARX_ARRAY_FOREACH2_7(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_9(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(8, ARRAY), ARG) ARX_ARRAY_FOREACH2_8(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_10(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(9, ARRAY), ARG) ARX_ARRAY_FOREACH2_9(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_11(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(10, ARRAY), ARG) ARX_ARRAY_FOREACH2_10(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_12(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(11, ARRAY), ARG) ARX_ARRAY_FOREACH2_11(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_13(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(12, ARRAY), ARG) ARX_ARRAY_FOREACH2_12(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_14(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(13, ARRAY), ARG) ARX_ARRAY_FOREACH2_13(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_15(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(14, ARRAY), ARG) ARX_ARRAY_FOREACH2_14(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_16(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(15, ARRAY), ARG) ARX_ARRAY_FOREACH2_15(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_17(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(16, ARRAY), ARG) ARX_ARRAY_FOREACH2_16(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_18(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(17, ARRAY), ARG) ARX_ARRAY_FOREACH2_17(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_19(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(18, ARRAY), ARG) ARX_ARRAY_FOREACH2_18(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_20(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(19, ARRAY), ARG) ARX_ARRAY_FOREACH2_19(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_21(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(20, ARRAY), ARG) ARX_ARRAY_FOREACH2_20(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_22(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(21, ARRAY), ARG) ARX_ARRAY_FOREACH2_21(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_23(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(22, ARRAY), ARG) ARX_ARRAY_FOREACH2_22(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_24(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(23, ARRAY), ARG) ARX_ARRAY_FOREACH2_23(ARRAY, M, ARG)
-#define ARX_ARRAY_FOREACH2_25(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(24, ARRAY), ARG) ARX_ARRAY_FOREACH2_24(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1(ARRAY, M, ARG) ARX_ARRAY_FOREACH_1_OO(ARX_ARRAY_SIZE(ARRAY), ARX_ARRAY_REVERSE(ARRAY), M, ARG)
+#define ARX_ARRAY_FOREACH_1_OO(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH_1_I(SIZE, ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_I(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH_1_II(ARX_ARRAY_FOREACH_1_ ## SIZE (ARRAY, M, ARG))
+#define ARX_ARRAY_FOREACH_1_II(res) res
+#define ARX_ARRAY_FOREACH_1_1(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(0, ARRAY), ARG)
+#define ARX_ARRAY_FOREACH_1_2(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(1, ARRAY), ARG) ARX_ARRAY_FOREACH_1_1(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_3(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(2, ARRAY), ARG) ARX_ARRAY_FOREACH_1_2(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_4(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(3, ARRAY), ARG) ARX_ARRAY_FOREACH_1_3(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_5(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(4, ARRAY), ARG) ARX_ARRAY_FOREACH_1_4(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_6(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(5, ARRAY), ARG) ARX_ARRAY_FOREACH_1_5(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_7(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(6, ARRAY), ARG) ARX_ARRAY_FOREACH_1_6(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_8(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(7, ARRAY), ARG) ARX_ARRAY_FOREACH_1_7(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_9(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(8, ARRAY), ARG) ARX_ARRAY_FOREACH_1_8(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_10(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(9, ARRAY), ARG) ARX_ARRAY_FOREACH_1_9(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_11(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(10, ARRAY), ARG) ARX_ARRAY_FOREACH_1_10(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_12(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(11, ARRAY), ARG) ARX_ARRAY_FOREACH_1_11(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_13(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(12, ARRAY), ARG) ARX_ARRAY_FOREACH_1_12(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_14(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(13, ARRAY), ARG) ARX_ARRAY_FOREACH_1_13(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_15(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(14, ARRAY), ARG) ARX_ARRAY_FOREACH_1_14(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_16(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(15, ARRAY), ARG) ARX_ARRAY_FOREACH_1_15(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_17(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(16, ARRAY), ARG) ARX_ARRAY_FOREACH_1_16(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_18(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(17, ARRAY), ARG) ARX_ARRAY_FOREACH_1_17(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_19(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(18, ARRAY), ARG) ARX_ARRAY_FOREACH_1_18(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_20(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(19, ARRAY), ARG) ARX_ARRAY_FOREACH_1_19(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_21(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(20, ARRAY), ARG) ARX_ARRAY_FOREACH_1_20(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_22(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(21, ARRAY), ARG) ARX_ARRAY_FOREACH_1_21(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_23(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(22, ARRAY), ARG) ARX_ARRAY_FOREACH_1_22(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_24(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(23, ARRAY), ARG) ARX_ARRAY_FOREACH_1_23(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_1_25(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(24, ARRAY), ARG) ARX_ARRAY_FOREACH_1_24(ARRAY, M, ARG)
 
+#define ARX_ARRAY_FOREACH_2(ARRAY, M, ARG) ARX_ARRAY_FOREACH_2_OO(ARX_ARRAY_SIZE(ARRAY), ARX_ARRAY_REVERSE(ARRAY), M, ARG)
+#define ARX_ARRAY_FOREACH_2_OO(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH_2_I(SIZE, ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_I(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH_2_II(ARX_ARRAY_FOREACH_2_ ## SIZE (ARRAY, M, ARG))
+#define ARX_ARRAY_FOREACH_2_II(res) res
+#define ARX_ARRAY_FOREACH_2_1(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(0, ARRAY), ARG)
+#define ARX_ARRAY_FOREACH_2_2(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(1, ARRAY), ARG) ARX_ARRAY_FOREACH_2_1(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_3(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(2, ARRAY), ARG) ARX_ARRAY_FOREACH_2_2(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_4(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(3, ARRAY), ARG) ARX_ARRAY_FOREACH_2_3(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_5(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(4, ARRAY), ARG) ARX_ARRAY_FOREACH_2_4(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_6(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(5, ARRAY), ARG) ARX_ARRAY_FOREACH_2_5(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_7(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(6, ARRAY), ARG) ARX_ARRAY_FOREACH_2_6(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_8(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(7, ARRAY), ARG) ARX_ARRAY_FOREACH_2_7(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_9(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(8, ARRAY), ARG) ARX_ARRAY_FOREACH_2_8(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_10(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(9, ARRAY), ARG) ARX_ARRAY_FOREACH_2_9(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_11(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(10, ARRAY), ARG) ARX_ARRAY_FOREACH_2_10(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_12(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(11, ARRAY), ARG) ARX_ARRAY_FOREACH_2_11(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_13(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(12, ARRAY), ARG) ARX_ARRAY_FOREACH_2_12(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_14(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(13, ARRAY), ARG) ARX_ARRAY_FOREACH_2_13(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_15(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(14, ARRAY), ARG) ARX_ARRAY_FOREACH_2_14(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_16(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(15, ARRAY), ARG) ARX_ARRAY_FOREACH_2_15(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_17(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(16, ARRAY), ARG) ARX_ARRAY_FOREACH_2_16(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_18(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(17, ARRAY), ARG) ARX_ARRAY_FOREACH_2_17(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_19(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(18, ARRAY), ARG) ARX_ARRAY_FOREACH_2_18(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_20(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(19, ARRAY), ARG) ARX_ARRAY_FOREACH_2_19(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_21(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(20, ARRAY), ARG) ARX_ARRAY_FOREACH_2_20(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_22(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(21, ARRAY), ARG) ARX_ARRAY_FOREACH_2_21(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_23(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(22, ARRAY), ARG) ARX_ARRAY_FOREACH_2_22(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_24(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(23, ARRAY), ARG) ARX_ARRAY_FOREACH_2_23(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_2_25(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(24, ARRAY), ARG) ARX_ARRAY_FOREACH_2_24(ARRAY, M, ARG)
+
+#define ARX_ARRAY_FOREACH_3(ARRAY, M, ARG) ARX_ARRAY_FOREACH_3_OO(ARX_ARRAY_SIZE(ARRAY), ARX_ARRAY_REVERSE(ARRAY), M, ARG)
+#define ARX_ARRAY_FOREACH_3_OO(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH_3_I(SIZE, ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_I(SIZE, ARRAY, M, ARG) ARX_ARRAY_FOREACH_3_II(ARX_ARRAY_FOREACH_3_ ## SIZE (ARRAY, M, ARG))
+#define ARX_ARRAY_FOREACH_3_II(res) res
+#define ARX_ARRAY_FOREACH_3_1(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(0, ARRAY), ARG)
+#define ARX_ARRAY_FOREACH_3_2(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(1, ARRAY), ARG) ARX_ARRAY_FOREACH_3_1(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_3(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(2, ARRAY), ARG) ARX_ARRAY_FOREACH_3_2(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_4(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(3, ARRAY), ARG) ARX_ARRAY_FOREACH_3_3(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_5(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(4, ARRAY), ARG) ARX_ARRAY_FOREACH_3_4(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_6(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(5, ARRAY), ARG) ARX_ARRAY_FOREACH_3_5(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_7(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(6, ARRAY), ARG) ARX_ARRAY_FOREACH_3_6(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_8(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(7, ARRAY), ARG) ARX_ARRAY_FOREACH_3_7(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_9(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(8, ARRAY), ARG) ARX_ARRAY_FOREACH_3_8(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_10(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(9, ARRAY), ARG) ARX_ARRAY_FOREACH_3_9(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_11(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(10, ARRAY), ARG) ARX_ARRAY_FOREACH_3_10(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_12(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(11, ARRAY), ARG) ARX_ARRAY_FOREACH_3_11(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_13(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(12, ARRAY), ARG) ARX_ARRAY_FOREACH_3_12(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_14(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(13, ARRAY), ARG) ARX_ARRAY_FOREACH_3_13(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_15(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(14, ARRAY), ARG) ARX_ARRAY_FOREACH_3_14(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_16(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(15, ARRAY), ARG) ARX_ARRAY_FOREACH_3_15(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_17(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(16, ARRAY), ARG) ARX_ARRAY_FOREACH_3_16(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_18(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(17, ARRAY), ARG) ARX_ARRAY_FOREACH_3_17(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_19(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(18, ARRAY), ARG) ARX_ARRAY_FOREACH_3_18(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_20(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(19, ARRAY), ARG) ARX_ARRAY_FOREACH_3_19(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_21(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(20, ARRAY), ARG) ARX_ARRAY_FOREACH_3_20(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_22(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(21, ARRAY), ARG) ARX_ARRAY_FOREACH_3_21(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_23(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(22, ARRAY), ARG) ARX_ARRAY_FOREACH_3_22(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_24(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(23, ARRAY), ARG) ARX_ARRAY_FOREACH_3_23(ARRAY, M, ARG)
+#define ARX_ARRAY_FOREACH_3_25(ARRAY, M, ARG) M(ARX_ARRAY_ELEM(24, ARRAY), ARG) ARX_ARRAY_FOREACH_3_24(ARRAY, M, ARG)
+
+#define ARX_ARRAY_FOREACH_4(a, m, d) OMG_TEH_DRAMA /* error */
 
 #endif

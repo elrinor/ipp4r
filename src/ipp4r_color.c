@@ -2,12 +2,6 @@
 #include <ruby.h>
 #include "ipp4r.h"
 
-// -------------------------------------------------------------------------- //
-// Supplementary macros
-// -------------------------------------------------------------------------- //
-#define COLOR_TO_GRAYSCALE(R, G, B)                                             \
-  ((Ipp32f) (0.299f * (R) + 0.587f * (G) + 0.114f * (B)))
-
 
 // -------------------------------------------------------------------------- //
 // Supplementary functions
@@ -17,8 +11,6 @@
  */
 static Color* rb_ColorRef_getter(VALUE self, Color* color) {
   ColorRef* colorref;
-
-  rb_ColorRef_check_raise(self);
 
   colorref = Data_Get_Struct_Ret(self, ColorRef);
 
@@ -33,9 +25,6 @@ static Color* rb_ColorRef_getter(VALUE self, Color* color) {
  */
 static void rb_ColorRef_setter(VALUE self, Color* color) {
   ColorRef* colorref;
-
-  /* setter is always called after getter => we don't need to perform boundary checks */
-  /* rb_ColorRef_check_raise(self); */
 
   colorref = Data_Get_Struct_Ret(self, ColorRef);
 
@@ -69,9 +58,9 @@ void color_destroy(Color* color) {
 // -------------------------------------------------------------------------- //
 // color_gray
 // -------------------------------------------------------------------------- //
-Ipp32f color_gray(Color* color) {
+/*Ipp32f color_gray(Color* color) {
   return COLOR_TO_GRAYSCALE(color->r, color->g, color->b);
-}
+}*/
 
 
 // -------------------------------------------------------------------------- //
@@ -94,14 +83,14 @@ VALUE rb_Color_initialize(int argc, VALUE *argv, VALUE self) {
   a = 1.0f;
   switch (argc) {
   case 4:
-    a = (Ipp32f) R2C_DBL(argv[3]);
+    a = (IppMetaNumber) R2C_METANUM(argv[3]);
   case 3:
-    r = (Ipp32f) R2C_DBL(argv[0]);
-    g = (Ipp32f) R2C_DBL(argv[1]);
-    b = (Ipp32f) R2C_DBL(argv[2]);
+    r = (IppMetaNumber) R2C_METANUM(argv[0]);
+    g = (IppMetaNumber) R2C_METANUM(argv[1]);
+    b = (IppMetaNumber) R2C_METANUM(argv[2]);
     break;
   case 1:
-    r = g = b = (Ipp32f) R2C_DBL(argv[0]);
+    r = g = b = (Ipp32f) R2C_METANUM(argv[0]);
     break;
   case 0:
     r = g = b = 0.0f;
@@ -129,10 +118,10 @@ VALUE rb_Color_to_s(VALUE self) {
   Data_Get_Struct(self, Color, color);
 
   sprintf(buf, "#%02x%02x%02x%02x", 
-    (int) (255 * R2C_DBL(rb_funcall(self, rb_ID_r, 0))), 
-    (int) (255 * R2C_DBL(rb_funcall(self, rb_ID_g, 0))), 
-    (int) (255 * R2C_DBL(rb_funcall(self, rb_ID_b, 0))), 
-    (int) (255 * R2C_DBL(rb_funcall(self, rb_ID_a, 0)))
+    (int) M2C_NUMBER_D(8u, R2C_METANUM(rb_funcall(self, rb_ID_r, 0))), 
+    (int) M2C_NUMBER_D(8u, R2C_METANUM(rb_funcall(self, rb_ID_g, 0))),
+    (int) M2C_NUMBER_D(8u, R2C_METANUM(rb_funcall(self, rb_ID_b, 0))),
+    (int) M2C_NUMBER_D(8u, R2C_METANUM(rb_funcall(self, rb_ID_a, 0)))
   );
   return rb_str_new2(buf);
 }
@@ -141,9 +130,9 @@ VALUE rb_Color_to_s(VALUE self) {
 // -------------------------------------------------------------------------- //
 // rb_Color_gray
 // -------------------------------------------------------------------------- //
-VALUE rb_Color_gray(VALUE self) {
+/*VALUE rb_Color_gray(VALUE self) {
   return C2R_DBL(COLOR_TO_GRAYSCALE(R2C_DBL(rb_funcall(self, rb_ID_r, 0)), R2C_DBL(rb_funcall(self, rb_ID_g, 0)), R2C_DBL(rb_funcall(self, rb_ID_b, 0))));
-}
+}*/
 
 // -------------------------------------------------------------------------- //
 // colorref_new
@@ -176,21 +165,6 @@ void colorref_mark(ColorRef* colorref) {
   assert(colorref != NULL);
 
   rb_gc_mark(colorref->rb_image);
-}
-
-// -------------------------------------------------------------------------- //
-// rb_ColorRef_check_raise
-// -------------------------------------------------------------------------- //
-VALUE rb_ColorRef_check_raise(VALUE self) {
-  ColorRef* colorref;
-
-  colorref = Data_Get_Struct_Ret(self, ColorRef);
-
-  if(colorref->x < 0 || colorref->y < 0 || colorref->x >= image_width(colorref->image) || colorref->y >= image_height(colorref->image))
-    rb_raise(rb_eRangeError, "trying to access pixel outside of image boundaries: (%d, %d), while operating on %dx%d image", colorref->x, colorref->y, 
-      image_width(colorref->image), image_height(colorref->image));
-
-  return self;
 }
 
 

@@ -7,33 +7,24 @@
 // is_channels_supported
 // -------------------------------------------------------------------------- //
 int is_channels_supported(IppChannels channels) {
-  int result;
-  IPPMETACALL(channels, result, TRUE; ipp, ARX_EMPTY, SUPPORTED_CHANNELS, ARX_EMPTY, FALSE);
-  return result;
+  IPPMETACALL(channels, return, C_SUPPORTED, IPPMETAFUNC, (C_INTERCEPT, ARX_EMPTY(), TRUE), ARX_EMPTY(), FALSE);
 }
 
 // -------------------------------------------------------------------------- //
 // is_datatype_supported
 // -------------------------------------------------------------------------- //
 int is_datatype_supported(IppDataType dataType) {
-  int result;
-  IPPMETACALL(dataType, result, TRUE; ipp, ARX_EMPTY, SUPPORTED_DATATYPES, ARX_EMPTY, FALSE);
-  return result;
+  IPPMETACALL(dataType, return, D_SUPPORTED, IPPMETAFUNC, (D_INTERCEPT, ARX_EMPTY(), TRUE), ARX_EMPTY(), FALSE);
 }
 
 
 // -------------------------------------------------------------------------- //
 // pixel_size
 // -------------------------------------------------------------------------- //
-int pixel_size(IppChannels channels) {
-  int pixelSize;
-
-#define PIXELSIZE_C1 (sizeof(Ipp8u))
-#define PIXELSIZE_C3 (3 * sizeof(Ipp8u))
-#define PIXELSIZE_AC4 (4 * sizeof(Ipp8u))
-  IPPMETACALL(channels, pixelSize, PIXELSIZE_, ARX_EMPTY, (3, (C1, C3, AC4)), ARX_EMPTY, -1; Unreachable() );
-
-  return pixelSize;
+int pixel_size(IppMetaType metaType) {
+#define METAFUNC(M, ARGS) (sizeof(D_CTYPE(M_DATATYPE(M))) * C_CNUMB(M_CHANNELS(M)))
+  IPPMETACALL(metaType, return, M_SUPPORTED, METAFUNC, ~, Unreachable(), -1);
+#undef METAFUNC
 }
 
 

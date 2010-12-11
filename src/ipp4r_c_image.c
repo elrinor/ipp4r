@@ -4,6 +4,7 @@
 #include <time.h> /* for rand seed */
 #include <stdio.h> /* for debug purposes */
 #include "ipp4r.h"
+#include "ipp4r_metatype.h"
 
 // -------------------------------------------------------------------------- //
 // Image accessors
@@ -15,8 +16,11 @@
 #define PIXELS(IMAGE) (image_pixels(IMAGE))
 #define PIXEL_AT(IMAGE, X, Y) ((char*) PIXELS(IMAGE) + Y * WSTEP(IMAGE) + X * PIXELSIZE(IMAGE))
 #define WSTEP(IMAGE) ((IMAGE)->data->wStep)
-#define CHANNELS(IMAGE) ((IMAGE)->data->channels)
 #define IPPISIZE(IMAGE) (image_ippisize(IMAGE))
+
+#define METATYPE(IMAGE) ((IMAGE)->data->metaType)
+#define CHANNELS(IMAGE) (metatype_channels(METATYPE(IMAGE)))
+#define DATATYPE(IMAGE) (metatype_datatype(METATYPE(IMAGE)))
 
 
 // -------------------------------------------------------------------------- //
@@ -43,7 +47,7 @@ static void* image_pixels(Image* image) {
   assert(image != NULL);
 
   if(IS_SUBIMAGE(image))
-    return (char*) image->data->pixels + (image->y + image->data->dy) * WSTEP(image) + (image->x + image->data->dx) * PIXELSIZE(image);
+    return (char*) image->data->pixels + image->y * WSTEP(image) + image->x * PIXELSIZE(image);
   else
     return image->data->pixels;
 }
@@ -80,16 +84,36 @@ IppChannels image_channels(Image* image) {
 
 
 // -------------------------------------------------------------------------- //
+// image_datatype
+// -------------------------------------------------------------------------- //
+IppDataType image_datatype(Image* image) {
+  assert(image != NULL);
+
+  return DATATYPE(image);
+}
+
+
+// -------------------------------------------------------------------------- //
+// image_metatype
+// -------------------------------------------------------------------------- //
+IppMetaType image_metatype(Image* image) {
+  assert(image != NULL);
+
+  return METATYPE(image);
+}
+
+
+// -------------------------------------------------------------------------- //
 // image_new
 // -------------------------------------------------------------------------- //
-Image* image_new(int width, int height, IppChannels channels) {
+Image* image_new(int width, int height, IppMetaType metaType) {
   Image* image;
   Data* data;
 
   assert(width > 0 && height > 0);
 
   image = ALLOC(Image); // ALLOC always succeeds or throws an exception
-  data = data_new(width, height, channels);
+  data = data_new(width, height, metaType);
 
   if(data != NULL) {
     image->data = data;
@@ -159,11 +183,10 @@ Image* image_clone(Image* image, int* pStatus) {
 
   assert(image != NULL);
 
-  newImage = image_new(WIDTH(image), HEIGHT(image), CHANNELS(image));
+  newImage = image_new(WIDTH(image), HEIGHT(image), METATYPE(image));
 
   if(newImage != NULL) {
-//    IPPMETACALL(CHANNELS(image), status, ippiCopy_8u_, R, (3, (C1, C3, AC4)), (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image)), ippStsBadArgErr; Unreachable());
-    IPPMETACALL(CHANNELS(image), status, SUPPORTED_CHANNELS, IPPMETAFUNC, (ippiCopy_8u_, R, (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image))), ippStsBadArgErr; Unreachable());
+    IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiCopy_, R, (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image))), Unreachable(), ippStsBadArgErr);
     if(IS_ERROR(status)) {
       image_destroy(newImage);
       newImage = NULL;
@@ -192,7 +215,7 @@ Image* image_load(const char* fileName, int* pStatus) {
     goto end;
   }
 
-  image = image_new(iplImage->width, iplImage->height, ippC3); // always succeeds or throws
+  image = image_new(iplImage->width, iplImage->height, ipp8u_C3); // always succeeds or throws
   if(image == NULL) {
     status = ippStsNoMemErr;
     goto error;
@@ -215,7 +238,6 @@ end:
 // image_save
 // -------------------------------------------------------------------------- //
 int image_save(Image* image, const char* fileName) {
-  /* this function is really ugly... but it's slated for removal anyway %) */
   IplImage* iplImage;
   int status;
   int result;
@@ -226,6 +248,7 @@ int image_save(Image* image, const char* fileName) {
   if(iplImage == NULL)
     return ippStsNoMemErr;
 
+  /* TODO: rewrite with convert! */
   switch(CHANNELS(image)) {
   case ippC1:
     status = ippiDup_8u_C1C3R(PIXELS(image), WSTEP(image), iplImage->imageData, iplImage->widthStep, IPPISIZE(image));
@@ -257,7 +280,7 @@ error:
 // -------------------------------------------------------------------------- //
 // image_addranduniform
 // -------------------------------------------------------------------------- //
-int image_addranduniform(Image* image, int lo, int hi) {
+int image_addranduniform(Image* image, IppMetaNumber lo, IppMetaNumber hi) {
   unsigned int seed;
   int status;
   static unsigned int seedMod = 0;
@@ -266,7 +289,9 @@ int image_addranduniform(Image* image, int lo, int hi) {
 
   seed = (unsigned int) time(NULL) + seedMod++;
 
-  IPPMETACALL(CHANNELS(image), status, ippiAddRandUniform_Direct_8u_, IR, (3, (C1, C3, AC4)), (PIXELS(image), WSTEP(image), IPPISIZE(image), (Ipp8u) lo, (Ipp8u) hi, &seed), ippStsBadArgErr; Unreachable());
+#define METAFUNC(M, ARG) ARX_JOIN_3(ippiAddRandUniform_Direct_, M, IR) (PIXELS(image), WSTEP(image), IPPISIZE(image), M2C_NUMBER(M, lo), M2C_NUMBER(M, hi), &seed)
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC  
   return status;
 }
 
@@ -278,6 +303,8 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
   int status;
   Image *result, *result2;
   int specialCase;
+
+  /* TODO */
 
   assert(image != NULL);
 
@@ -418,6 +445,10 @@ int image_set_pixel(Image* image, int x, int y, Color* color) {
 
   p = PIXEL_AT(image, x, y);
 
+  M2C_COLOR_TO(8u_C3, color->as_array, p);
+
+  M2C_COLOR_TO(8u_C1, color->as_array, p);
+
   switch(CHANNELS(image)) {
   case ippC1:
     *p = (unsigned char) color_gray(color);
@@ -443,12 +474,13 @@ int image_set_pixel(Image* image, int x, int y, Color* color) {
 // -------------------------------------------------------------------------- //
 int image_fill(Image* image, Color* color) {
   int status;
+  USING_M2C_COLOR(1);
 
   assert(image != NULL && color != NULL);
 
-#define ippiSet_8u_XXR(a, b, c, d) ippiSet_8u_C1R(color_gray(color), b, c, d)
-  IPPMETACALL_A(CHANNELS(image), status, ippiSet_8u_, R, (3, (XX, C3, C4)), (3, (C1, C3, AC4)), (color->as_array, PIXELS(image), WSTEP(image), IPPISIZE(image)), ippStsBadArgErr; Unreachable());
-#undef ippiSet_8u_XXR
+#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiSet_, M, R) (M2C_COLOR(M, color->as_array, 0), PIXELS(image), WSTEP(image), IPPISIZE(image))
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC
 
   return status;
 }
@@ -469,8 +501,10 @@ Image* image_transpose_copy(Image* image, int* pStatus) {
     goto end;
   }
 
-  IPPMETACALL_A(CHANNELS(image), status, ippiTranspose_8u_, R, (3, (C1, C3, C4)), (3, (C1, C3, AC4)), 
-    (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image)), ippStsBadArgErr; Unreachable());
+#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiTranspose_, M_REPLACE_C_IF_C(M_REPLACE_D_IF_D(M, 32f, 32s), AC4, C4), R) /* TODO: test this hack*/ \
+  (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image))
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC
 
   if(IS_ERROR(status)) {
     image_destroy(newImage);
@@ -490,6 +524,7 @@ end:
 Image* image_threshold_copy(Image* image, Color* threshold, IppCmpOp cmp, Color* value, int* pStatus) {
   Image* newImage;
   int status;
+  USING_M2C_COLOR(2);
 
   assert(image != NULL && threshold != NULL && value != NULL);
   assert(cmp == ippCmpLess || cmp == ippCmpGreater);
@@ -500,40 +535,10 @@ Image* image_threshold_copy(Image* image, Color* threshold, IppCmpOp cmp, Color*
     goto end;
   }
 
-  /* TODO: METACALL! */
-
-  /* call */
-  if(cmp == ippCmpGreater) {
-    switch(CHANNELS(image)) {
-    case ippC1:
-      status = ippiThreshold_GTVal_8u_C1R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), color_gray(threshold), color_gray(value));
-    	break;
-    case ippC3:
-      status = ippiThreshold_GTVal_8u_C3R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), threshold->as_array, value->as_array);
-      break;
-    case ippAC4:
-      status = ippiThreshold_GTVal_8u_AC4R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), threshold->as_array, value->as_array);
-      break;
-    default:
-      status = ippStsBadArgErr;
-      Unreachable();
-    }
-  } else {
-    switch(CHANNELS(image)) {
-    case ippC1:
-      status = ippiThreshold_LTVal_8u_C1R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), color_gray(threshold), color_gray(value));
-      break;
-    case ippC3:
-      status = ippiThreshold_LTVal_8u_C3R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), threshold->as_array, value->as_array);
-      break;
-    case ippAC4:
-      status = ippiThreshold_LTVal_8u_AC4R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), threshold->as_array, value->as_array);
-      break;
-    default:
-      status = ippStsBadArgErr;
-      Unreachable();
-    }
-  }
+#define METAFUNC(M, ARGS) ARX_JOIN_3(ippiThreshold_Val_, M, R)                  \
+  (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), M2C_COLOR(M, threshold->as_array, 0), M2C_COLOR(M, value->as_array, 1), cmp)
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC
 
 end:
   if(pStatus != NULL)

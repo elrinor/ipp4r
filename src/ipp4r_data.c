@@ -35,13 +35,13 @@ void* xmalloc_protected(long size) {
  * 
  * @returns a pointer to a newly allocated block, or NULL in case of an error
  */
-static void* ipp4rMalloc(int width, int height, IppChannels channels, int* wStep) {
+static void* ipp4rMalloc(int width, int height, IppMetaType metaType, int* wStep) {
   char* ptr;
   char* result;
 
   assert(width > 0 && height > 0);
 
-  *wStep = (width * pixel_size(channels) + 32 - 1) & -32;
+  *wStep = (width * pixel_size(metaType) + 32 - 1) & -32;
 
   ptr = xmalloc_protected(*wStep * height + 32 + sizeof(char*) - 1);
   if(ptr == NULL)
@@ -69,7 +69,7 @@ static void ipp4rFree(void* ptr) {
 // -------------------------------------------------------------------------- //
 // data_new
 // -------------------------------------------------------------------------- //
-Data* data_new(int width, int height, IppChannels channels) {
+Data* data_new(int width, int height, IppMetaType metaType) {
   int wStep;
   Data* data;
   void* pixels;
@@ -77,16 +77,15 @@ Data* data_new(int width, int height, IppChannels channels) {
   assert(width > 0 && height > 0);
 
   data = ALLOC(Data); // ALLOC always succeeds or throws an exception
-  pixels = ipp4rMalloc(width, height, channels, &wStep); 
+  pixels = ipp4rMalloc(width, height, metaType, &wStep); 
   
   if(pixels != NULL) {
     data->pixels = pixels;
-    data->channels = channels;
+    data->metaType = metaType;
     data->height = height;
     data->width = width;
     data->wStep = wStep;
-    data->dx = data->dy = 0;
-    data->pixelSize = pixel_size(channels);
+    data->pixelSize = pixel_size(metaType);
   } else {
     xfree(data);
     data = NULL;

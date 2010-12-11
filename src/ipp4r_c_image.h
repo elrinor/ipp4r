@@ -4,6 +4,7 @@
 #include <ruby.h>
 #include <ippdefs.h>
 #include "ipp4r_fwd.h"
+#include "ipp4r_metatype.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,7 +34,11 @@ extern "C" {
  * Also note that even though we are storing a reference to Data structure, it is still considered a part of Image's internal state, 
  * i.e. <tt>clone</tt> and <tt>dup</tt> methods copy the Data.
  * The motivation here is simple: Image class is opaque and user knows nothing about it's internal structure. From outside our Image structure is perceived as a
- * "smart reference" to image data, and therefore the data itself is a part of Image's internal state.
+ * "smart reference" to image data, and therefore the data itself is a part of Image's internal state. <p>
+ *
+ * Another thing you must know is that there exist no way to change the size of an existing Data structure. Motivation: change of size involves creating of a new image and
+ * is not an in-place operation. Also change of size may invalidate pixel references or even Image structures. That's why all in-place operations does not change the size of
+ * an image.
  */
 struct _Image {
   VALUE rb_data;        /**< Ruby wrapper around Data associated with this Image */
@@ -54,7 +59,7 @@ struct _Image {
  * 
  * @returns newly allocated Image, or NULL in case of an error.
  */
-Image* image_new(int width, int height, IppChannels channels);
+Image* image_new(int width, int height, IppMetaType metaType);
 
 
 /**
@@ -114,6 +119,18 @@ IppChannels image_channels(Image* image);
 
 
 /**
+ * @returns data type of a given image
+ */
+IppDataType image_datatype(Image* image);
+
+
+/**
+ * @returns metatype of a given image
+ */
+IppMetaType image_metatype(Image* image);
+
+
+/**
  * Loads an image from a file.
  *
  * @param filename name of a file to load image from
@@ -141,7 +158,7 @@ int image_save(Image* image, const char* filename);
  * @param hi upper bound for the range of uniformly distributed values
  * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-int image_addranduniform(Image* image, int lo, int hi);
+int image_addranduniform(Image* image, IppMetaNumber lo, IppMetaNumber hi);
 
 
 /**

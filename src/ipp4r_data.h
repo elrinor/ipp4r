@@ -3,6 +3,7 @@
 
 #include <ippdefs.h>
 #include "ipp4r_fwd.h"
+#include "ipp4r_metatype.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,15 +15,13 @@ extern "C" {
  * One instance of Data is shared between several instances of Image.
  */
 struct _Data {
-  IppChannels channels; /**< channel type of an image */
+  IppMetaType metaType; /**< metatype of an image */
 
   void* pixels;         /**< pointer to aligned image data */
   int width;            /**< image width in pixels */
   int height;           /**< image height in pixels */
   int wStep;            /**< size of aligned image row in bytes */
   int pixelSize;        /**< size of one image pixel in bytes */
-
-  int dx, dy;           /**< image growth values */
 };
 
 
@@ -31,7 +30,7 @@ struct _Data {
  * 
  * @returns newly allocated Data, or NULL in case of an error.
  */
-Data* data_new(int width, int height, IppChannels channels);
+Data* data_new(int width, int height, IppMetaType metaType);
 
 
 /**

@@ -53,6 +53,7 @@
 // STATIC_ASSERT
 // -------------------------------------------------------------------------- //
 #define STATIC_ASSERT(expr) {char STATIC_ASSERTION_FAILURE[(expr) ? 1 : 0];}
+#define STATIC_ASSERT_D(expr) char ARX_JOIN(STATIC_ASSERTION_FAILURE_, __LINE__)[(expr) ? 1 : 0];
 
 
 // -------------------------------------------------------------------------- //

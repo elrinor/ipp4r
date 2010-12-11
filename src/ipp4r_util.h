@@ -25,7 +25,7 @@ int is_datatype_supported(IppDataType dataType);
 /**
  * @return size in bytes of one pixel for given channels
  */
-int pixel_size(IppChannels channels);
+int pixel_size(IppMetaType metaType);
 
 
 /**
