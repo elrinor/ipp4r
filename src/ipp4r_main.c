@@ -8,6 +8,7 @@
 /* THE GLOBAL TODO
  * - freeze issue
  * - taint issue
+ * - borders of newly created images
  */
 
 /* 2ASK:
@@ -99,6 +100,14 @@ void Init_ipp4r() {
     ENUM(ippAxsBoth,       "AxsBoth")
   ENUM_END()
 
+  ENUM_DEF(rb_MaskSize, "MaskSize")
+    ENUM(ippMskSize1x3, "MskSize1x3")
+    ENUM(ippMskSize1x5, "MskSize1x5")
+    ENUM(ippMskSize3x1, "MskSize3x1")
+    ENUM(ippMskSize3x3, "MskSize3x3")
+    ENUM(ippMskSize5x1, "MskSize5x1")
+    ENUM(ippMskSize5x5, "MskSize5x5")
+  ENUM_END()
 
   /* And all other classes */
   rb_Image = rb_define_class_under(rb_Ipp, "Image", rb_cObject);
@@ -137,6 +146,7 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "filter_min", rb_Image_filter_min, -1);
   rb_define_method(rb_Image, "filter_max", rb_Image_filter_max, -1);
   rb_define_method(rb_Image, "filter_median", rb_Image_filter_median, -1);
+  rb_define_method(rb_Image, "filter_gauss", rb_Image_filter_gauss, -1);
 
   rb_Data = rb_define_class_under(rb_Image, "Data", rb_cObject);
 

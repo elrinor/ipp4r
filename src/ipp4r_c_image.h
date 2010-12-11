@@ -436,6 +436,17 @@ int image_filter_median_copy(Image* image, Image** dst, IppiSize maskSize, IppiP
 
 
 /**
+ * Filters an image using a Gaussian kernel
+ *
+ * @param image source image
+ * @param dst destination image
+ * @param maskSize size of the mask
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_filter_gauss_copy(Image* image, Image** dst, IppiMaskSize maskSize);
+
+
+/**
  * Auxiliary function, returns textual description of an image_* error or warning. Don't try to deallocate the return value!
  * 
  * @param status error/warning value to get textual description for

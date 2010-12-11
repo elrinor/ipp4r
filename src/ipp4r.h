@@ -29,7 +29,7 @@ extern "C" {
 // -------------------------------------------------------------------------- //
 // Config
 // -------------------------------------------------------------------------- //
-#define USE_TRACE
+//#define USE_TRACE
 
 // -------------------------------------------------------------------------- //
 // Debug facilities
@@ -80,6 +80,7 @@ IPP4R_EXTERN VALUE rb_DataType;
 IPP4R_EXTERN VALUE rb_MetaType;
 IPP4R_EXTERN VALUE rb_CmpOp;
 IPP4R_EXTERN VALUE rb_Axis;
+IPP4R_EXTERN VALUE rb_MaskSize;
 
 
 // -------------------------------------------------------------------------- //

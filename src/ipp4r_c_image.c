@@ -61,8 +61,25 @@ static void* image_pixels(Image* image) {
 /**
  * @returns required border size for filter with mask of size maskSize and anchor point specified by anchor.
  */
-int required_border(IppiSize maskSize, IppiPoint anchor) {
+static int required_border(IppiSize maskSize, IppiPoint anchor) {
   return max(max(anchor.x, anchor.y), max(maskSize.width - anchor.x - 1, maskSize.height - anchor.y - 1));
+}
+
+/**
+ * @returns required border size for given IppiMaskSize
+ */
+static int masksize_border(IppiMaskSize maskSize) {
+  switch(maskSize) {
+  case ippMskSize1x3: return 1;
+  case ippMskSize1x5: return 2;
+  case ippMskSize3x1: return 1;
+  case ippMskSize3x3: return 1;
+  case ippMskSize5x1: return 2;
+  case ippMskSize5x5: return 2;
+  default: 
+    Unreachable();
+    return 0;
+  }
 }
 
 
@@ -310,7 +327,7 @@ TRACE_FUNC(int, image_clone, (Image* image, Image** dst)) {
 
   assert(image != NULL && dst != NULL);
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image) /* TODO */)))
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
     TRACE_RETURN(status);
 
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiCopy_, R, (PWPWI(image, *dst))), Unreachable(), ippStsBadArgErr);
@@ -426,7 +443,7 @@ TRACE_FUNC(int, image_convert_datatype_copy, (Image* image, Image** dst, IppData
   if(DATATYPE(image) == dataType)
     TRACE_RETURN(image_clone(image, dst));
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), metatype_compose(dataType, CHANNELS(image)), BORDER(image))))
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), metatype_compose(dataType, CHANNELS(image)), 0)))
     TRACE_RETURN(status);
 
   TRACE(("image_convert_datatype from %d to %d", DATATYPE(image), dataType));
@@ -484,7 +501,7 @@ TRACE_FUNC(int, image_convert_channels_copy, (Image* image, Image** dst, IppChan
   if(CHANNELS(image) == channels)
     TRACE_RETURN(image_clone(image, dst));
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), metatype_compose(DATATYPE(image), channels), BORDER(image))))
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), metatype_compose(DATATYPE(image), channels), 0)))
     TRACE_RETURN(status);
 
   #define CONVERT(D, C, NEW_C)                                                  \
@@ -627,7 +644,7 @@ TRACE_FUNC(int, image_transpose_copy, (Image* image, Image** dst)) {
 
   assert(image != NULL && dst != NULL);
 
-  if(IS_ERROR(status = image_new(dst, HEIGHT(image), WIDTH(image), METATYPE(image), BORDER(image))))
+  if(IS_ERROR(status = image_new(dst, HEIGHT(image), WIDTH(image), METATYPE(image), 0)))
     TRACE_RETURN(status);
 
 #define METAFUNC(M, ARGS) ARX_JOIN_3(ippiTranspose_, M_REPLACE_C_IF_C(M_REPLACE_D_IF_D(M, 32f, 32s), AC4, C4), R) (PWPWI(image, *dst)) /* 32f -> 32s hack works, tested */
@@ -668,7 +685,7 @@ TRACE_FUNC(int, image_threshold_copy, (Image* image, Image** dst, Color* thresho
   assert(image != NULL && dst != NULL && threshold != NULL && value != NULL);
   //assert(cmp == ippCmpLess || cmp == ippCmpGreater); TODO: do we need this?
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image))))
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
     TRACE_RETURN(status);
 
 #define METAFUNC(M, ARGS) ARX_JOIN_3(ippiThreshold_Val_, M, R) (PWPWI(image, *dst), M2C_COLOR(M, threshold->as_array, 0), M2C_COLOR(M, value->as_array, 1), cmp)
@@ -737,7 +754,7 @@ TRACE_FUNC(int, image_dilate3x3_copy, (Image* image, Image** dst)) {
   if(IS_ERROR(status = image_ensure_border(image, 1)))
     TRACE_RETURN(status);
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image))))
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
     TRACE_RETURN(status);
 
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiDilate3x3_, R, (PWPWI(image, *dst))), Unreachable(), ippStsBadArgErr);
@@ -776,7 +793,7 @@ TRACE_FUNC(int, image_erode3x3_copy, (Image* image, Image** dst)) {
   if(IS_ERROR(status = image_ensure_border(image, 1)))
     TRACE_RETURN(status);
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image))))
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
     TRACE_RETURN(status);
 
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiErode3x3_, R, (PWPWI(image, *dst))), Unreachable(), ippStsBadArgErr);
@@ -815,7 +832,7 @@ TRACE_FUNC(int, image_filter_box_copy, (Image* image, Image** dst, IppiSize mask
   if(IS_ERROR(status = image_ensure_border(image, required_border(maskSize, anchor))))
     TRACE_RETURN(status);
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image))))
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
     TRACE_RETURN(status);
 
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiFilterBox_, R, (PWPWI(image, *dst), maskSize, anchor)), Unreachable(), ippStsBadArgErr);
@@ -837,7 +854,7 @@ TRACE_FUNC(int, image_filter_min_copy, (Image* image, Image** dst, IppiSize mask
   if(IS_ERROR(status = image_ensure_border(image, required_border(maskSize, anchor))))
     TRACE_RETURN(status);
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image))))
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
     TRACE_RETURN(status);
 
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiFilterMin_, R, (PWPWI(image, *dst), maskSize, anchor)), Unreachable(), ippStsBadArgErr);
@@ -859,7 +876,7 @@ TRACE_FUNC(int, image_filter_max_copy, (Image* image, Image** dst, IppiSize mask
   if(IS_ERROR(status = image_ensure_border(image, required_border(maskSize, anchor))))
     TRACE_RETURN(status);
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image))))
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
     TRACE_RETURN(status);
 
   IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiFilterMax_, R, (PWPWI(image, *dst), maskSize, anchor)), Unreachable(), ippStsBadArgErr);
@@ -891,7 +908,7 @@ TRACE_FUNC(int, image_filter_median_copy, (Image* image, Image** dst, IppiSize m
     TRACE_RETURN(status);
   }
 
-  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image)))) {
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0))) {
     if(created)
       image_destroy(image);
     TRACE_RETURN(status);
@@ -904,6 +921,28 @@ TRACE_FUNC(int, image_filter_median_copy, (Image* image, Image** dst, IppiSize m
 
   if(created)
     image_destroy(image);
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_filter_gauss_copy
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_filter_gauss_copy, (Image* image, Image** dst, IppiMaskSize maskSize)) {
+  int status;
+
+  assert(image != NULL && dst != NULL);
+
+  if(IS_ERROR(status = image_ensure_border(image, masksize_border(maskSize))))
+    TRACE_RETURN(status);
+
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
+    TRACE_RETURN(status);
+
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiFilterGauss_, R, (PWPWI(image, *dst), maskSize)), Unreachable(), ippStsBadArgErr);
+  if(IS_ERROR(status))
+    image_destroy(*dst);
+
   TRACE_RETURN(status);
 } TRACE_END
 

@@ -382,6 +382,18 @@ VALUE rb_Image_filter_median(int argc, VALUE* argv, VALUE self);
 /**
  * Method:
  * <ul>
+ * <li> <tt>Ipp::Image#filter_gauss(MaskSize) </tt>
+ * </ul>
+ *
+ * Filters an image using a gauss filter.
+ * @returns a newly created filtered image
+ */
+VALUE rb_Image_filter_gauss(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
  * <li> <tt>Ipp::Image#rebuild_border!</tt>
  * </ul>
  *

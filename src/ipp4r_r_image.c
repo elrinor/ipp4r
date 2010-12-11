@@ -582,6 +582,28 @@ VALUE rb_Image_filter_median(int argc, VALUE* argv, VALUE self) {
 
 
 // -------------------------------------------------------------------------- //
+// rb_Image_filter_gauss
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_filter_gauss(int argc, VALUE* argv, VALUE self) {
+  Image* newImage;
+  IppiMaskSize maskSize;
+
+  switch(argc) {
+  case 1:
+    maskSize = R2C_ENUM(argv[0], rb_MaskSize);
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1)", argc);
+    break;
+  }
+
+  raise_on_error(image_filter_gauss_copy(Data_Get_Struct_Ret(self, Image), &newImage, maskSize));
+
+  return image_wrap(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
 // rb_Image_rebuild_border_bang
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_rebuild_border_bang(VALUE self) {
