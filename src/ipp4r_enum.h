@@ -172,3 +172,5 @@ VALUE rb_Enum_type_values(VALUE klass);
 #endif
 
 #endif
+
+

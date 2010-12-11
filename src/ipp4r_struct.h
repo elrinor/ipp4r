@@ -84,3 +84,4 @@ VALUE rb_Point_to_s(VALUE self);
 
 
 #endif
+

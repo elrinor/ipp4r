@@ -108,3 +108,5 @@ VALUE rb_Point_to_s(VALUE self) {
   sprintf(buf, "(%d, %d)", ippiPoint->x, ippiPoint->y);
   return rb_str_new2(buf);
 }
+
+

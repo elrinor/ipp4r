@@ -432,3 +432,5 @@ VALUE rb_Image_border(VALUE self);
 #endif
 
 #endif
+
+

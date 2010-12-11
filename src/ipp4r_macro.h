@@ -123,3 +123,5 @@ VALUE rb_ ## CLASS ## _ ## ATTR ## _eq(VALUE self, VALUE val) {                 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
 #endif
+
+

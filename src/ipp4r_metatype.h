@@ -281,6 +281,12 @@ typedef enum {
   ARX_JOIN_3(ARX_TUPLE_ELEM(3, 0, ARGS), METATYPE, ARX_TUPLE_ELEM(3, 1, ARGS))ARX_TUPLE_ELEM(3, 2, ARGS)
 
 
+/**
+ * @param ARG value
+ */
+#define IPPMETAVAL(METATUPE, ARG) ARG
+
+
 // -------------------------------------------------------------------------- //
 // IppMetaType run-time accessors
 // -------------------------------------------------------------------------- //
@@ -335,3 +341,4 @@ int is_metatype_supported(IppMetaType metaType);
 #endif
 
 #endif
+

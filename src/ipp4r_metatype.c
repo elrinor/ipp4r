@@ -1,4 +1,4 @@
-#include <cassert>
+#include "assert.h"
 #include "ipp4r.h"
 
 
@@ -74,7 +74,7 @@ int metatype_pixel_size(IppMetaType metaType) {
 // is_channels_supported
 // -------------------------------------------------------------------------- //
 int is_channels_supported(IppChannels channels) {
-  IPPMETACALL(channels, return, C_SUPPORTED, IPPMETAFUNC, (0?ipp, :TRUE, ARX_EMPTY()), ARX_EMPTY(), FALSE);
+  IPPMETACALL(channels, return, C_SUPPORTED, IPPMETAVAL, TRUE, ARX_EMPTY(), FALSE);
 }
 
 
@@ -82,7 +82,7 @@ int is_channels_supported(IppChannels channels) {
 // is_datatype_supported
 // -------------------------------------------------------------------------- //
 int is_datatype_supported(IppDataType dataType) {
-  IPPMETACALL(dataType, return, D_SUPPORTED, IPPMETAFUNC, (0?ipp, :TRUE, ARX_EMPTY()), ARX_EMPTY(), FALSE);
+  IPPMETACALL(dataType, return, D_SUPPORTED, IPPMETAVAL, TRUE, ARX_EMPTY(), FALSE);
 }
 
 
@@ -90,5 +90,7 @@ int is_datatype_supported(IppDataType dataType) {
 // is_metatype_supported
 // -------------------------------------------------------------------------- //
 int is_metatype_supported(IppMetaType metaType) {
-  IPPMETACALL(metaType, return, M_SUPPORTED, IPPMETAFUNC, (0?ipp, :TRUE, ARX_EMPTY()), ARX_EMPTY(), FALSE);
+  IPPMETACALL(metaType, return, M_SUPPORTED, IPPMETAVAL, TRUE, ARX_EMPTY(), FALSE);
 }
+
+

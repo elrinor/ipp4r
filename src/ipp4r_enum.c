@@ -177,3 +177,6 @@ VALUE rb_Enum_type_values(VALUE klass) {
 
   return result;
 }
+
+
+

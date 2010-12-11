@@ -57,3 +57,4 @@ void raise_on_error(int status) {
   if(IS_WARNING(status))
     rb_warning("%s", image_error_message(status));
 }
+

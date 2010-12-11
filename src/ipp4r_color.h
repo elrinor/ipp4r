@@ -387,3 +387,6 @@ VALUE rb_ColorRef_a_eq(VALUE self, VALUE val);
 #endif
 
 #endif
+
+
+
