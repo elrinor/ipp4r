@@ -3,6 +3,8 @@
 #include <time.h> /* for rand seed */
 #include <stdio.h> /* for debug purposes */
 #include <assert.h>
+#include "ipp4r.h"
+#include "ipp4r_metatype.h"
 
 #ifdef USE_OPENCV
 #  include <highgui.h>
@@ -12,9 +14,6 @@
 #ifdef fclose
 #  undef fclose
 #endif
-
-#include "ipp4r.h"
-#include "ipp4r_metatype.h"
 
 // -------------------------------------------------------------------------- //
 // Image accessors

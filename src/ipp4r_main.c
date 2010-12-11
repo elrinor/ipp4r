@@ -11,13 +11,15 @@
  * - borders of newly created images
  */
 
-#if defined(_MSC_VER) || defined(__ICL)
-#  pragma comment(lib, "ippi.lib")
-#  pragma comment(lib, "ippcc.lib")
-#  pragma comment(lib, "ippcore.lib")
-#  ifdef USE_OPENCV
-#    pragma comment(lib, "highgui.lib")
-#    pragma comment(lib, "cxcore.lib")
+#if 0
+#  if defined(_MSC_VER) || defined(__ICL)
+#    pragma comment(lib, "ippi.lib")
+#    pragma comment(lib, "ippcc.lib")
+#    pragma comment(lib, "ippcore.lib")
+#    ifdef USE_OPENCV
+#      pragma comment(lib, "highgui.lib")
+#      pragma comment(lib, "cxcore.lib")
+#    endif
 #  endif
 #endif
 
