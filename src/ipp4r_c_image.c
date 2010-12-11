@@ -2,7 +2,16 @@
 #include <ruby.h>
 #include <time.h> /* for rand seed */
 #include <stdio.h> /* for debug purposes */
-#include <highgui.h>
+#include <assert.h>
+
+#ifdef USE_OPENCV
+#  include <highgui.h>
+#endif
+
+/* nasty ruby ifdefs... */
+#ifdef fclose
+#  undef fclose
+#endif
 
 #include "ipp4r.h"
 #include "ipp4r_metatype.h"
@@ -15,7 +24,7 @@
 #define WIDTH(IMAGE) ((IS_SUBIMAGE(IMAGE) ? (IMAGE)->width : (IMAGE)->data->width))
 #define PIXELSIZE(IMAGE) ((IMAGE)->data->pixelSize)
 #define PIXELS(IMAGE) (image_pixels(IMAGE))
-#define PIXEL_AT(IMAGE, X, Y) ((void*)((char*) PIXELS(IMAGE) + Y * WSTEP(IMAGE) + X * PIXELSIZE(IMAGE)))
+#define PIXEL_AT(IMAGE, X, Y) ((void*)((char*) PIXELS(IMAGE) + (Y) * WSTEP(IMAGE) + (X) * PIXELSIZE(IMAGE)))
 #define WSTEP(IMAGE) ((IMAGE)->data->wStep)
 #define IPPISIZE(IMAGE) (image_ippisize(IMAGE))
 #define SHARED(IMAGE) ((IMAGE)->data->shared)
@@ -340,9 +349,96 @@ TRACE_FUNC(int, image_clone, (Image* image, Image** dst)) {
 
 
 // -------------------------------------------------------------------------- //
+// image_load_bmp_24bit
+// -------------------------------------------------------------------------- //
+#pragma pack(push, 1)
+typedef struct _BMPHeader {
+  short type;           /**< File type = 0x4D42 */
+  int size;	 	
+  short reserved1;
+  short reserved2;
+  int offset;           /**< Offset from file start to bitmap data */
+} BMPHeader;
+
+typedef struct _BMPInfoHeader {
+  int size;             /**< Size of this structure in bytes */
+  int width;
+  int height;
+  short planes;         /**< Should be equal to 1 */
+  short bitsPerPixel;
+  unsigned compression; /**< Compression flags ( 0 - no compression ) */
+  unsigned imageSize;   /**< Size of image in bytes */
+  int xPelsPerMeter;		
+  int yPelsPerMeter;	
+  int clrUsed;
+  int clrImportant;
+} BMPInfoHeader;
+
+typedef struct _BMPPaletteItem {
+  unsigned char blue;
+  unsigned char green;
+  unsigned char red;
+  unsigned char unused;
+} BMPPaletteItem;
+#pragma pack(pop)
+
+TRACE_FUNC(int, image_load_bmp_24bit, (Image** dst, const char* fileName, int border)) {
+  FILE* f;
+  BMPHeader hdr;
+  BMPInfoHeader	infoHdr;
+  int status;
+  unsigned char* ptr;
+  int i;
+  int bmpStep;
+
+  assert(dst != NULL && fileName != NULL);
+
+  f = fopen(fileName, "rb");
+  if(f == NULL)
+    goto error;
+
+  if(fread(&hdr, sizeof(hdr), 1, f) != 1)
+    goto error_close;
+
+  if(hdr.type != 0x4D42)
+    goto error_close; /* Not a bitmap file at all */
+
+  if(fread(&infoHdr, sizeof(infoHdr), 1, f) != 1)
+    goto error_close;
+
+  if(infoHdr.bitsPerPixel != 24)   
+    goto error_close; /* Not a truecolor bitmap */
+
+  if(infoHdr.compression != 0)
+    goto error_close; /* Compressed bitmap */
+
+  if(fseek(f, hdr.offset, SEEK_SET) != 0)
+    goto error_close;
+
+  if(IS_ERROR(status = image_new(dst, infoHdr.width, infoHdr.height, ipp8u_C3, border)))
+    goto error_close;
+
+  /* read bottom-up BMP */
+  ptr = PIXEL_AT(*dst, 0, HEIGHT(*dst) - 1);
+  bmpStep = (infoHdr.width * 3 + 3) & -4;
+  for(i = 0; i < infoHdr.height; i++)
+    fread(ptr - i * WSTEP(*dst), bmpStep, 1, f);
+
+  fclose(f);
+  TRACE_RETURN(ippStsOk);
+
+error_close:
+  fclose(f);
+error:
+  TRACE_RETURN(ippStsErr);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
 // image_load
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(int, image_load, (Image** dst, const char* fileName, int border)) {
+#ifdef USE_OPENCV
   IplImage* iplImage;
   int status;
 
@@ -367,6 +463,69 @@ TRACE_FUNC(int, image_load, (Image** dst, const char* fileName, int border)) {
 error:
   cvReleaseImage(&iplImage);
   TRACE_RETURN(status);
+#else
+  TRACE_RETURN(image_load_bmp_24bit(dst, fileName, border));
+#endif
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_save_bmp_24bit
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_save_bmp_24bit, (Image* image, const char* fileName)) {
+  FILE* f;
+  BMPHeader hdr;
+  BMPInfoHeader	infoHdr;
+  unsigned char* ptr;
+  int bmpStep, imageSize;
+  int i;
+
+  assert(image != NULL && fileName != NULL);
+  assert(METATYPE(image) == ipp8u_C3);
+
+  f = fopen(fileName, "wb");
+  if(f == NULL)
+    goto error;
+
+  bmpStep = (WIDTH(image) * 3 + 3) & -4;
+  imageSize = bmpStep * HEIGHT(image) + sizeof(BMPHeader) + sizeof(BMPInfoHeader);
+  hdr.type = 0x4D42;
+  hdr.size = imageSize;
+  hdr.reserved1 = 0;
+  hdr.reserved2 = 0;
+  hdr.offset = sizeof(BMPHeader) + sizeof(BMPInfoHeader);
+
+  if(fwrite(&hdr, sizeof(hdr), 1, f) != 1)
+    goto error_close;
+
+  infoHdr.size = sizeof(BMPInfoHeader);
+  infoHdr.width = WIDTH(image);
+  infoHdr.height = HEIGHT(image);
+  infoHdr.planes = 1;
+  infoHdr.bitsPerPixel = 24;
+  infoHdr.compression = 0;
+  infoHdr.imageSize = imageSize;
+  infoHdr.xPelsPerMeter = 0;
+  infoHdr.yPelsPerMeter = 0;
+  infoHdr.clrUsed = 0;
+  infoHdr.clrImportant = 0;
+
+  if(fwrite(&infoHdr, sizeof(infoHdr), 1, f) != 1)
+    goto error_close;
+
+  /* write bottom-up BMP */
+  ptr = PIXEL_AT(image, 0, HEIGHT(image) - 1);
+  for(i = 0; i < infoHdr.height; i++) 
+    if(fwrite(ptr - i * WSTEP(image), bmpStep, 1, f) != 1)
+      goto error_close;
+
+  fclose(f);
+  TRACE_RETURN(ippStsOk);
+
+error_close:
+  fclose(f);
+error:
+  TRACE_RETURN(ippStsErr);
 } TRACE_END
 
 
@@ -374,10 +533,12 @@ error:
 // image_save
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(int, image_save, (Image* image, const char* fileName)) {
+#ifdef USE_OPENCV
   IplImage* iplImage;
+  int result;
+#endif
   Image* converted;
   int status;
-  int result;
 
   assert(image != NULL && fileName != NULL);
 
@@ -387,6 +548,7 @@ TRACE_FUNC(int, image_save, (Image* image, const char* fileName)) {
   } else
     converted = image;
 
+#ifdef USE_OPENCV
   iplImage = cvCreateImage(cvSize(WIDTH(image), HEIGHT(image)), IPL_DEPTH_8U, 3);
   if(iplImage == NULL) {
     status = ippStsNoMemErr;
@@ -403,6 +565,9 @@ TRACE_FUNC(int, image_save, (Image* image, const char* fileName)) {
 
 error:
   cvReleaseImage(&iplImage);
+#else
+  status = image_save_bmp_24bit(converted, fileName);
+#endif
 
 end:
   if(METATYPE(image) != ipp8u_C3)

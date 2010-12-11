@@ -15,8 +15,10 @@
 #  pragma comment(lib, "ippi.lib")
 #  pragma comment(lib, "ippcc.lib")
 #  pragma comment(lib, "ippcore.lib")
-#  pragma comment(lib, "highgui.lib")
-#  pragma comment(lib, "cxcore.lib")
+#  ifdef USE_OPENCV
+#    pragma comment(lib, "highgui.lib")
+#    pragma comment(lib, "cxcore.lib")
+#  endif
 #endif
 
 

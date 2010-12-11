@@ -33,6 +33,8 @@ extern "C" {
 /** This one was added for debugging purposes only, you'll never need it (at least I hope so) */
 // #define USE_TRACE
 
+/** Use OpenCV for saving / loading? If not defined, only 24-bit bmp files will be dupported */
+// #define USE_OPENCV
 
 // -------------------------------------------------------------------------- //
 // Debug facilities

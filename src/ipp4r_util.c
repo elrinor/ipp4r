@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <ruby.h>
-#include <stdarg.h>
+#include <stdarg.h> /* for va_list */
 #include "ipp4r.h"
 
 // -------------------------------------------------------------------------- //
