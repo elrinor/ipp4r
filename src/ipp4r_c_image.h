@@ -3,6 +3,7 @@
 
 #include <ruby.h>
 #include <ippdefs.h>
+#include <ippi.h>
 #include "ipp4r_fwd.h"
 #include "ipp4r_metatype.h"
 
@@ -68,23 +69,23 @@ struct _Image {
 /**
  * Allocates memory for image.
  * 
- * @returns newly allocated Image, or NULL in case of an error.
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_new(int width, int height, IppMetaType metaType, int border);
+int image_new(Image** dst, int width, int height, IppMetaType metaType, int border);
 
 
 /**
  * Creates a subimage, that references a part of given image
  *
  * @param image source image
+ * @param dst destination image
  * @param x subimage upper-left corner x coordinate
  * @param y subimage upper-left corner y coordinate
  * @param width subimage width
  * @param height subimage width
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly created subimage, or NULL in case of an error
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_subimage(Image* image, int x, int y, int width, int height, int* pStatus);
+int image_subimage(Image* image, Image** dst, int x, int y, int width, int height);
 
 
 /**
@@ -117,10 +118,10 @@ void image_share(Image* image);
  * Clones the given image (including the Data it references)
  *
  * @param image image to clone
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly allocated image which is a copy of the given one, or NULL in case of an error.
+ * @param dst destination image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_clone(Image* image, int* pStatus);
+int image_clone(Image* image, Image** dst);
 
 
 /**
@@ -182,10 +183,10 @@ int image_rebuild_border(Image* image);
  * Loads an image from a file.
  *
  * @param filename name of a file to load image from
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly loaded image, or NULL in case of an error
+ * @param dst destination image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_load(const char* filename, int border, int* pStatus);
+int image_load(Image** dst, const char* filename, int border);
 
 
 /**
@@ -213,33 +214,33 @@ int image_addranduniform(Image* image, IppMetaNumber lo, IppMetaNumber hi);
  * Converts the given image to given data type. If no conversion is needed, just returns a clone of the given image (underlying data is cloned too!).
  * 
  * @param image source image
+ * @param dst destination image
  * @param dataType new data type
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly created converted image, or NULL in case of an error
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_convert_datatype_copy(Image* image, IppDataType dataType, int* pStatus);
+int image_convert_datatype_copy(Image* image, Image** dst, IppDataType dataType);
 
 
 /**
  * Converts the given image to given channels type. If no conversion is needed, just returns a clone of the given image (underlying data is cloned too!).
  * 
  * @param image source image
+ * @param dst destination image
  * @param channels new channels type
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly created converted image, or NULL in case of an error
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_convert_channels_copy(Image* image, IppChannels channels, int* pStatus);
+int image_convert_channels_copy(Image* image, Image** dst, IppChannels channels);
 
 
 /**
  * Converts the given image to given metatype. If no conversion is needed, just returns a clone of the given image (underlying data is cloned too!).
  * 
  * @param image source image
+ * @param dst destination image
  * @param metaType new metatype
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly created converted image, or NULL in case of an error
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_convert_copy(Image* image, IppMetaType metaType, int* pStatus);
+int image_convert_copy(Image* image, Image** dst, IppMetaType metaType);
 
 
 /**
@@ -280,10 +281,10 @@ int image_fill(Image* image, Color* color);
  * Transposes a source image
  *
  * @param image source image
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly created transposed image, or NULL in case of an error
+ * @param dst destination image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_transpose_copy(Image* image, int* pStatus);
+int image_transpose_copy(Image* image, Image** dst);
 
 
 /**
@@ -306,13 +307,13 @@ int image_threshold(Image* image, Color* threshold, IppCmpOp cmp, Color* value);
  * Note that alpha channel is not thresholded.
  *
  * @param image source image
+ * @param dst destination image
  * @param threshold threshold value
  * @param cmp relation, only ippCmpLess and ippCmpGreater are supported
  * @param value color value to set thresholded pixels to
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly created thresholded image, or NULL in case of an error
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_threshold_copy(Image* image, Color* threshold, IppCmpOp cmp, Color* value, int* pStatus);
+int image_threshold_copy(Image* image, Image** dst, Color* threshold, IppCmpOp cmp, Color* value);
 
 
 /**
@@ -322,6 +323,18 @@ Image* image_threshold_copy(Image* image, Color* threshold, IppCmpOp cmp, Color*
  * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
 int image_jaehne(Image* image);
+
+
+/**
+ * Creates a test image that has an intensity ramp.
+ *
+ * @param image target image
+ * @param offset offset value
+ * @param slope slope coefficient
+ * @param axis specifies the direction of the image intensity ramp
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_ramp(Image* image, float offset, float slope, IppiAxis axis);
 
 
 /**
@@ -337,10 +350,10 @@ int image_dilate3x3(Image* image);
  * Performs dilation of an image using a 3x3 mask. In the four-channel image the alpha channel is not processed.
  *
  * @param image source image
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly created dilated image, or NULL in case of an error
+ * @param dst destination image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_dilate3x3_copy(Image* image, int* pStatus);
+int image_dilate3x3_copy(Image* image, Image** dst);
 
 
 /**
@@ -356,10 +369,10 @@ int image_erode3x3(Image* image);
  * Performs erosion of an image using a 3x3 mask. In the four-channel image the alpha channel is not processed.
  *
  * @param image source image
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly created eroded image, or NULL in case of an error
+ * @param dst destination image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_erode3x3_copy(Image* image, int* pStatus);
+int image_erode3x3_copy(Image* image, Image** dst);
 
 
 /**
@@ -377,13 +390,49 @@ int image_filter_box(Image* image, IppiSize maskSize, IppiPoint anchor);
  * Blurs an image using a simple box filter.
  *
  * @param image source image
+ * @param dst destination image
  * @param maskSize size of the mask in pixels
  * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
- * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
- * @returns a newly created eroded image, or NULL in case of an error
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-Image* image_filter_box_copy(Image* image, IppiSize maskSize, IppiPoint anchor, int* pStatus);
+int image_filter_box_copy(Image* image, Image** dst, IppiSize maskSize, IppiPoint anchor);
 
+
+/**
+ * Applies the ‘min’ filter to an image.
+ *
+ * @param image source image
+ * @param dst destination image
+ * @param maskSize size of the mask in pixels
+ * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_filter_min_copy(Image* image, Image** dst, IppiSize maskSize, IppiPoint anchor);
+
+
+/**
+ * Applies the ‘max’ filter to an image.
+ *
+ * @param image source image
+ * @param dst destination image
+ * @param maskSize size of the mask in pixels
+ * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_filter_max_copy(Image* image, Image** dst, IppiSize maskSize, IppiPoint anchor);
+
+
+/**
+ * Filters an image using a median filter.
+ * Underlying routines doesn't support ipp32f type, therefore conversion to ipp16u is performed if the image of ipp32f datatype is passed.
+ *
+ * @param image source image
+ * @param dst destination image
+ * @param maskSize size of the mask in pixels
+ * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_filter_median_copy(Image* image, Image** dst, IppiSize maskSize, IppiPoint anchor);
 
 
 /**

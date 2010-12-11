@@ -61,6 +61,17 @@ VALUE rb_Image_jaehne(int argc, VALUE *argv, VALUE klass);
 
 
 /**
+ * Singleton method:
+ * <ul>
+ * <li> <tt>Ipp::Image#ramp(width, height, metatype, offset, slope, axis = AxsHorizontal)</tt>
+ * </ul>
+ *
+ * Creates a test image that has an intensity ramp
+ */
+VALUE rb_Image_ramp(int argc, VALUE *argv, VALUE klass);
+
+
+/**
  * Method: 
  * <ul>
  * <li> <tt>Ipp::Image#subimage(x, y, width=0, height=0)</tt>
@@ -330,6 +341,42 @@ VALUE rb_Image_filter_box(int argc, VALUE* argv, VALUE self);
  * @returns self
  */
 VALUE rb_Image_filter_box_bang(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#filter_min(size, anchor = {size.width / 2, size.height / 2}) </tt>
+ * </ul>
+ *
+ * Applies the ‘min’ filter to an image.
+ * @returns a newly created filtered image
+ */
+VALUE rb_Image_filter_min(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#filter_max(size, anchor = {size.width / 2, size.height / 2}) </tt>
+ * </ul>
+ *
+ * Applies the ‘max’ filter to an image.
+ * @returns a newly created filtered image
+ */
+VALUE rb_Image_filter_max(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#filter_median(size, anchor = {size.width / 2, size.height / 2}) </tt>
+ * </ul>
+ *
+ * Filters an image using a median filter.
+ * @returns a newly created filtered image
+ */
+VALUE rb_Image_filter_median(int argc, VALUE* argv, VALUE self);
 
 
 /**

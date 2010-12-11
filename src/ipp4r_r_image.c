@@ -16,7 +16,6 @@ TRACE_FUNC(VALUE, rb_Image_initialize, (int argc, VALUE *argv, VALUE self)) {
   int width;
   int height;
   Image* image;
-  int status;
   int border;
   VALUE filler;
   IppMetaType metaType;
@@ -37,15 +36,12 @@ TRACE_FUNC(VALUE, rb_Image_initialize, (int argc, VALUE *argv, VALUE self)) {
     height = R2C_INT(argv[1]);
     if(width <= 0 || height <= 0)
       rb_raise(rb_Exception, "wrong image size: %d x %d", width, height);
-    image = image_new(width, height, metaType, border);
+    raise_on_error(image_new(&image, width, height, metaType, border));
     break;
   default:
     rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 2, 3, 4 or 5)", argc);
     break;
   }
-
-  if(image == NULL)
-    rb_raise(rb_eNoMemError, "failed to create new image");
 
   DATA_PTR(self) = image;
   image_share(image);
@@ -62,7 +58,6 @@ TRACE_FUNC(VALUE, rb_Image_initialize, (int argc, VALUE *argv, VALUE self)) {
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(VALUE, rb_Image_load, (int argc, VALUE* argv, VALUE klass)) {
   Image* image;
-  int status;
   int border;
 
   border = 1;
@@ -72,8 +67,7 @@ TRACE_FUNC(VALUE, rb_Image_load, (int argc, VALUE* argv, VALUE klass)) {
     border = R2C_INT(argv[1]);
   case 1:
     Check_Type(argv[0], T_STRING);
-    image = image_load(R2C_STR(argv[0]), border, &status);
-    raise_on_error(status);
+    raise_on_error(image_load(&image, R2C_STR(argv[0]), border));
     break;
   default:
     rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1 or 2)", argc);
@@ -89,11 +83,8 @@ TRACE_FUNC(VALUE, rb_Image_load, (int argc, VALUE* argv, VALUE klass)) {
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(VALUE, rb_Image_initialize_copy, (VALUE self, VALUE other)) {
   Image* image;
-  int status;
 
-  image = image_clone(Data_Get_Struct_Ret(other, Image), &status);
-
-  raise_on_error(status);
+  raise_on_error(image_clone(Data_Get_Struct_Ret(other, Image), &image));
 
   DATA_PTR(self) = image;
   image_share(image);
@@ -125,13 +116,46 @@ TRACE_FUNC(VALUE, rb_Image_jaehne, (int argc, VALUE *argv, VALUE klass)) {
 
 
 // -------------------------------------------------------------------------- //
+// rb_Image_ramp
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(VALUE, rb_Image_ramp, (int argc, VALUE *argv, VALUE klass)) {
+  VALUE r_image;
+  int status;
+  IppiAxis axis; 
+  float slope, offset;
+
+  axis = ippAxsHorizontal;
+
+  switch (argc) {
+  case 6:
+    axis = R2C_ENUM(argv[5], rb_Axis);
+  case 5:
+    r_image = rb_Image_initialize(3, argv, rb_Image_alloc(klass));
+    offset = R2C_FLT(argv[3]);
+    slope = R2C_FLT(argv[4]);
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 5 or 6)", argc);
+    break;
+  }
+
+  rb_gc_register_address(&r_image); /* tell ruby gc this object is in use */
+  status = image_ramp(Data_Get_Struct_Ret(r_image, Image), offset, slope, axis);
+  rb_gc_unregister_address(&r_image);
+
+  raise_on_error(status);
+
+  TRACE_RETURN(r_image);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
 // rb_Image_subimage
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(VALUE, rb_Image_subimage, (int argc, VALUE *argv, VALUE self)) {
   int x0, y0, x1, y1, width, height, t;
   Image* image;
   Image* newImage;
-  int status;
 
   width = 0;
   height = 0;
@@ -171,8 +195,7 @@ TRACE_FUNC(VALUE, rb_Image_subimage, (int argc, VALUE *argv, VALUE self)) {
   if(x1 <= 0 || y1 <= 0 || x1 > image_width(image) || y1 > image_height(image))
     rb_raise(rb_eArgError, "wrong subimage lower-right corner coordinates: (%d, %d)", x1, y1);
 
-  newImage = image_subimage(image, x0, y0, width, height, &status);
-  raise_on_error(status);
+  raise_on_error(image_subimage(image, &newImage, x0, y0, width, height));
 
   TRACE_RETURN(image_wrap(newImage));
 } TRACE_END
@@ -275,10 +298,8 @@ VALUE rb_Image_metatype(VALUE self) {
 // -------------------------------------------------------------------------- //
 TRACE_FUNC(VALUE, rb_Image_convert, (VALUE self, VALUE r_metatype)) {
   Image* result;
-  int status;
 
-  result = image_convert_copy(Data_Get_Struct_Ret(self, Image), R2C_ENUM(r_metatype, rb_MetaType), &status);
-  raise_on_error(status);
+  raise_on_error(image_convert_copy(Data_Get_Struct_Ret(self, Image), &result, R2C_ENUM(r_metatype, rb_MetaType)));
 
   TRACE_RETURN(image_wrap(result));
 } TRACE_END
@@ -352,10 +373,8 @@ VALUE rb_Image_fill(VALUE self, VALUE color) {
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_transpose(VALUE self) {
   Image* newImage;
-  int status;
 
-  newImage = image_transpose_copy(Data_Get_Struct_Ret(self, Image), &status);
-  raise_on_error(status);
+  raise_on_error(image_transpose_copy(Data_Get_Struct_Ret(self, Image), &newImage));
 
   return image_wrap(newImage);
 }
@@ -399,8 +418,7 @@ VALUE rb_Image_threshold(int argc, VALUE* argv, VALUE self) {
  
   rb_Image_threshold_parseargs(argc, argv, &threshold, &cmp, &value);
  
-  newImage = image_threshold_copy(Data_Get_Struct_Ret(self, Image), &threshold, cmp, &value, &status);
-  raise_on_error(status);
+  raise_on_error(image_threshold_copy(Data_Get_Struct_Ret(self, Image), &newImage, &threshold, cmp, &value));
 
   return image_wrap(newImage);
 }
@@ -426,10 +444,8 @@ VALUE rb_Image_threshold_bang(int argc, VALUE* argv, VALUE self) {
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_dilate3x3(VALUE self) {
   Image* newImage;
-  int status;
 
-  newImage = image_dilate3x3_copy(Data_Get_Struct_Ret(self, Image), &status);
-  raise_on_error(status);
+  raise_on_error(image_dilate3x3_copy(Data_Get_Struct_Ret(self, Image), &newImage));
 
   return image_wrap(newImage);
 }
@@ -449,10 +465,8 @@ VALUE rb_Image_dilate3x3_bang(VALUE self) {
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_erode3x3(VALUE self) {
   Image* newImage;
-  int status;
 
-  newImage = image_erode3x3_copy(Data_Get_Struct_Ret(self, Image), &status);
-  raise_on_error(status);
+  raise_on_error(image_erode3x3_copy(Data_Get_Struct_Ret(self, Image), &newImage));
 
   return image_wrap(newImage);
 }
@@ -468,9 +482,9 @@ VALUE rb_Image_erode3x3_bang(VALUE self) {
 
 
 // -------------------------------------------------------------------------- //
-// rb_Image_filter_box_parseargs
+// rb_Image_filter_size_anchor_parseargs
 // -------------------------------------------------------------------------- //
-static void rb_Image_filter_box_parseargs(int argc, VALUE* argv, IppiSize* size, IppiPoint* anchor) {
+static void rb_Image_filter_size_anchor_parseargs(int argc, VALUE* argv, IppiSize* size, IppiPoint* anchor) {
   switch(argc) {
   case 1:
   case 2:
@@ -494,14 +508,12 @@ static void rb_Image_filter_box_parseargs(int argc, VALUE* argv, IppiSize* size,
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_filter_box(int argc, VALUE* argv, VALUE self) {
   Image* newImage;
-  int status;
   IppiSize size;
   IppiPoint anchor;
 
-  rb_Image_filter_box_parseargs(argc, argv, &size, &anchor);
+  rb_Image_filter_size_anchor_parseargs(argc, argv, &size, &anchor);
 
-  newImage = image_filter_box_copy(Data_Get_Struct_Ret(self, Image), size, anchor, &status);
-  raise_on_error(status);
+  raise_on_error(image_filter_box_copy(Data_Get_Struct_Ret(self, Image), &newImage, size, anchor));
 
   return image_wrap(newImage);
 }
@@ -514,11 +526,58 @@ VALUE rb_Image_filter_box_bang(int argc, VALUE* argv, VALUE self) {
   IppiSize size;
   IppiPoint anchor;
 
-  rb_Image_filter_box_parseargs(argc, argv, &size, &anchor);
+  rb_Image_filter_size_anchor_parseargs(argc, argv, &size, &anchor);
 
   raise_on_error(image_filter_box(Data_Get_Struct_Ret(self, Image), size, anchor));
 
   return self;
+}
+
+// -------------------------------------------------------------------------- //
+// rb_Image_filter_min
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_filter_min(int argc, VALUE* argv, VALUE self) {
+  Image* newImage;
+  IppiSize size;
+  IppiPoint anchor;
+
+  rb_Image_filter_size_anchor_parseargs(argc, argv, &size, &anchor);
+
+  raise_on_error(image_filter_min_copy(Data_Get_Struct_Ret(self, Image), &newImage, size, anchor));
+
+  return image_wrap(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_filter_max
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_filter_max(int argc, VALUE* argv, VALUE self) {
+  Image* newImage;
+  IppiSize size;
+  IppiPoint anchor;
+
+  rb_Image_filter_size_anchor_parseargs(argc, argv, &size, &anchor);
+
+  raise_on_error(image_filter_max_copy(Data_Get_Struct_Ret(self, Image), &newImage, size, anchor));
+
+  return image_wrap(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_filter_median
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_filter_median(int argc, VALUE* argv, VALUE self) {
+  Image* newImage;
+  IppiSize size;
+  IppiPoint anchor;
+
+  rb_Image_filter_size_anchor_parseargs(argc, argv, &size, &anchor);
+
+  raise_on_error(image_filter_median_copy(Data_Get_Struct_Ret(self, Image), &newImage, size, anchor));
+
+  return image_wrap(newImage);
 }
 
 

@@ -84,7 +84,7 @@ void Init_ipp4r() {
   ENUM_END()
   
   ENUM_DEF(rb_DataType, "DataType")
-  ARX_ARRAY_FOREACH(D_SUPPORTED, DEFINE_ENUM, ~)
+    ARX_ARRAY_FOREACH(D_SUPPORTED, DEFINE_ENUM, ~)
   ENUM_END()
 #undef DEFINE_ENUM
 
@@ -93,9 +93,17 @@ void Init_ipp4r() {
     ENUM(ippCmpGreater, "GreaterThan")
   ENUM_END()
 
+  ENUM_DEF(rb_Axis, "Axis")
+    ENUM(ippAxsHorizontal, "AxsHorizontal")
+    ENUM(ippAxsVertical,   "AxsVertical")
+    ENUM(ippAxsBoth,       "AxsBoth")
+  ENUM_END()
+
+
   /* And all other classes */
   rb_Image = rb_define_class_under(rb_Ipp, "Image", rb_cObject);
   rb_define_singleton_method(rb_Image, "jaehne", rb_Image_jaehne, -1);
+  rb_define_singleton_method(rb_Image, "ramp", rb_Image_ramp, -1);
   rb_define_singleton_method(rb_Image, "load", rb_Image_load, -1);
   rb_define_alloc_func(rb_Image, rb_Image_alloc);
   rb_define_method(rb_Image, "initialize", rb_Image_initialize, -1);
@@ -126,6 +134,9 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "erode3x3", rb_Image_erode3x3, 0);
   rb_define_method(rb_Image, "filter_box!", rb_Image_filter_box_bang, -1);
   rb_define_method(rb_Image, "filter_box", rb_Image_filter_box, -1);
+  rb_define_method(rb_Image, "filter_min", rb_Image_filter_min, -1);
+  rb_define_method(rb_Image, "filter_max", rb_Image_filter_max, -1);
+  rb_define_method(rb_Image, "filter_median", rb_Image_filter_median, -1);
 
   rb_Data = rb_define_class_under(rb_Image, "Data", rb_cObject);
 
