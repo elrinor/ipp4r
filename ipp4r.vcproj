@@ -69,6 +69,22 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\ipp4r_c_image.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipp4r_c_image.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipp4r_color.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipp4r_color.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\ipp4r_data.c"
 				>
 			</File>
@@ -77,11 +93,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\ipp4r_image.c"
+				RelativePath=".\src\ipp4r_enum.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\ipp4r_image.h"
+				RelativePath=".\src\ipp4r_enum.h"
 				>
 			</File>
 			<File
@@ -90,6 +106,22 @@
 			</File>
 			<File
 				RelativePath=".\src\ipp4r_main.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipp4r_r_image.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipp4r_r_image.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipp4r_util.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipp4r_util.h"
 				>
 			</File>
 		</Filter>
