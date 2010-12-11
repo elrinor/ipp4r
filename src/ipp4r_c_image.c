@@ -812,6 +812,7 @@ TRACE_FUNC(int, image_dilate, (Image* image, Matrix* mask, IppiPoint anchor)) {
   IppiSize maskSize;
 
   assert(image != NULL && mask != NULL);
+  assert(mask->isMask);
 
   if(IS_ERROR(status = image_ensure_border(image, required_border(mask->size, anchor))))
     TRACE_RETURN(status);
@@ -829,6 +830,7 @@ TRACE_FUNC(int, image_dilate_copy, (Image* image, Image** dst, Matrix* mask, Ipp
   int status;
 
   assert(image != NULL && dst != NULL && mask != NULL);
+  assert(mask->isMask);
 
   if(IS_ERROR(status = image_ensure_border(image, required_border(mask->size, anchor))))
     TRACE_RETURN(status);
@@ -852,6 +854,7 @@ TRACE_FUNC(int, image_erode, (Image* image, Matrix* mask, IppiPoint anchor)) {
   IppiSize maskSize;
 
   assert(image != NULL && mask != NULL);
+  assert(mask->isMask);
 
   if(IS_ERROR(status = image_ensure_border(image, required_border(mask->size, anchor))))
     TRACE_RETURN(status);
@@ -869,6 +872,7 @@ TRACE_FUNC(int, image_erode_copy, (Image* image, Image** dst, Matrix* mask, Ippi
   int status;
 
   assert(image != NULL && dst != NULL && mask != NULL);
+  assert(mask->isMask);
 
   if(IS_ERROR(status = image_ensure_border(image, required_border(mask->size, anchor))))
     TRACE_RETURN(status);
@@ -1025,6 +1029,32 @@ TRACE_FUNC(int, image_filter_gauss_copy, (Image* image, Image** dst, IppiMaskSiz
 
   TRACE_RETURN(status);
 } TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_filter
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_filter, (Image* image, Image** dst, Matrix* kernel, IppiPoint anchor)) {
+  int status;
+
+  assert(image != NULL && dst != NULL && kernel != NULL);
+  assert(!kernel->isMask);
+
+  if(IS_ERROR(status = image_ensure_border(image, required_border(kernel->size, anchor))))
+    TRACE_RETURN(status);
+
+  if(IS_ERROR(status = image_new(dst, WIDTH(image), HEIGHT(image), METATYPE(image), 0)))
+    TRACE_RETURN(status);
+
+#define METAFUNC(M, ARGS) ARX_JOIN_5(IF_M_IS_D(M, 32f, ippiFilter_, ippiFilter32f_), M_DATATYPE(M), _, M_CHANNELS(M), R) (PWPWI(image, *dst), (Ipp32f*) kernel->data, kernel->size, anchor)
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC
+  if(IS_ERROR(status))
+    image_destroy(*dst);
+
+  TRACE_RETURN(status);
+}
+
 
 
 // -------------------------------------------------------------------------- //

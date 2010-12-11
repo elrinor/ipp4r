@@ -493,6 +493,18 @@ int image_filter_gauss_copy(Image* image, Image** dst, IppiMaskSize maskSize);
 
 
 /**
+ * Filters an image using a general rectangular kernel
+ *
+ * @param image source image
+ * @param dst destination image
+ * @param kernel kernel
+ * @param anchor anchor cell specifying the kernel alignment with respect to the position of the input pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_filter(Image* image, Image** dst, Matrix* kernel, IppiPoint anchor);
+
+
+/**
  * Auxiliary function, returns textual description of an image_* error or warning. Don't try to deallocate the return value!
  * 
  * @param status error/warning value to get textual description for

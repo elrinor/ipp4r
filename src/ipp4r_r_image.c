@@ -482,16 +482,16 @@ VALUE rb_Image_erode3x3_bang(VALUE self) {
 
 
 // -------------------------------------------------------------------------- //
-// rb_Image_filter_mask_anchor_parseargs
+// rb_Image_filter_matrix_anchor_parseargs
 // -------------------------------------------------------------------------- //
-static void rb_Image_filter_mask_anchor_parseargs(int argc, VALUE* argv, Matrix** mask, IppiPoint* anchor) {
+static void rb_Image_filter_matrix_anchor_parseargs(int argc, VALUE* argv, int isMask, Matrix** mask, IppiPoint* anchor) {
   switch (argc) {
   case 1:
   case 2:
     if(argc == 2)
       *anchor = *Data_Get_Struct_Ret(argv[1], IppiPoint); /* this one throws */
 
-    *mask = matrix_new(argv[0], TRUE);
+    *mask = matrix_new(argv[0], isMask);
     if(*mask == NULL)
       rb_raise(rb_eArgError, "Argument #1 must be a matrix");
 
@@ -516,7 +516,7 @@ VALUE rb_Image_dilate(int argc, VALUE* argv, VALUE self) {
   int status;
   Image* newImage;
   
-  rb_Image_filter_mask_anchor_parseargs(argc, argv, &mask, &anchor);
+  rb_Image_filter_matrix_anchor_parseargs(argc, argv, TRUE, &mask, &anchor);
   status = image_dilate_copy(Data_Get_Struct_Ret(self, Image), &newImage, mask, anchor); /* this one won't throw */
   matrix_destroy(mask);
   raise_on_error(status);
@@ -532,7 +532,7 @@ VALUE rb_Image_dilate_bang(int argc, VALUE* argv, VALUE self) {
   IppiPoint anchor;
   int status;
 
-  rb_Image_filter_mask_anchor_parseargs(argc, argv, &mask, &anchor);
+  rb_Image_filter_matrix_anchor_parseargs(argc, argv, TRUE, &mask, &anchor);
   status = image_dilate(Data_Get_Struct_Ret(self, Image), mask, anchor); /* this one won't throw */
   matrix_destroy(mask);
   raise_on_error(status);
@@ -549,7 +549,7 @@ VALUE rb_Image_erode(int argc, VALUE* argv, VALUE self) {
   int status;
   Image* newImage;
 
-  rb_Image_filter_mask_anchor_parseargs(argc, argv, &mask, &anchor);
+  rb_Image_filter_matrix_anchor_parseargs(argc, argv, TRUE, &mask, &anchor);
   status = image_erode_copy(Data_Get_Struct_Ret(self, Image), &newImage, mask, anchor); /* this one won't throw */
   matrix_destroy(mask);
   raise_on_error(status);
@@ -565,7 +565,7 @@ VALUE rb_Image_erode_bang(int argc, VALUE* argv, VALUE self) {
   IppiPoint anchor;
   int status;
 
-  rb_Image_filter_mask_anchor_parseargs(argc, argv, &mask, &anchor);
+  rb_Image_filter_matrix_anchor_parseargs(argc, argv, TRUE, &mask, &anchor);
   status = image_erode(Data_Get_Struct_Ret(self, Image), mask, anchor); /* this one won't throw */
   matrix_destroy(mask);
   raise_on_error(status);
@@ -691,6 +691,23 @@ VALUE rb_Image_filter_gauss(int argc, VALUE* argv, VALUE self) {
 
   raise_on_error(image_filter_gauss_copy(Data_Get_Struct_Ret(self, Image), &newImage, maskSize));
 
+  return image_wrap(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_filter
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_filter(int argc, VALUE* argv, VALUE self) {
+  Matrix* kernel;
+  IppiPoint anchor;
+  int status;
+  Image* newImage;
+
+  rb_Image_filter_matrix_anchor_parseargs(argc, argv, FALSE, &kernel, &anchor);
+  status = image_filter(Data_Get_Struct_Ret(self, Image), &newImage, kernel, anchor); /* this one won't throw */
+  matrix_destroy(kernel);
+  raise_on_error(status);
   return image_wrap(newImage);
 }
 

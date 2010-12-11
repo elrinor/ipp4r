@@ -438,6 +438,18 @@ VALUE rb_Image_filter_gauss(int argc, VALUE* argv, VALUE self);
 /**
  * Method:
  * <ul>
+ * <li> <tt>Ipp::Image#filter(Matrix kernel, Point anchor = kernelSize / 2) </tt>
+ * </ul>
+ *
+ * Filters an image using a general rectangular kernel.
+ * @returns a newly created filtered image
+ */
+VALUE rb_Image_filter(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
  * <li> <tt>Ipp::Image#rebuild_border!</tt>
  * </ul>
  *

@@ -151,6 +151,7 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "filter_max", rb_Image_filter_max, -1);
   rb_define_method(rb_Image, "filter_median", rb_Image_filter_median, -1);
   rb_define_method(rb_Image, "filter_gauss", rb_Image_filter_gauss, -1);
+  rb_define_method(rb_Image, "filter", rb_Image_filter, -1);
 
   rb_Data = rb_define_class_under(rb_Image, "Data", rb_cObject);
 
