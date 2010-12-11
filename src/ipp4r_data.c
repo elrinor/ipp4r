@@ -41,7 +41,7 @@ static void* ipp4rMalloc(int width, int height, IppMetaType metaType, int* wStep
 
   assert(width > 0 && height > 0);
 
-  *wStep = (width * pixel_size(metaType) + 32 - 1) & -32;
+  *wStep = (width * metatype_pixel_size(metaType) + 32 - 1) & -32;
 
   ptr = xmalloc_protected(*wStep * height + 32 + sizeof(char*) - 1);
   if(ptr == NULL)
@@ -69,51 +69,57 @@ static void ipp4rFree(void* ptr) {
 // -------------------------------------------------------------------------- //
 // data_new
 // -------------------------------------------------------------------------- //
-Data* data_new(int width, int height, IppMetaType metaType) {
+TRACE_FUNC(Data*, data_new, (int width, int height, IppMetaType metaType)) {
   int wStep;
   Data* data;
   void* pixels;
 
   assert(width > 0 && height > 0);
 
-  data = ALLOC(Data); // ALLOC always succeeds or throws an exception
+  /* We use malloc and not ALLOC here because:
+   * 1. We don't want to mess with exception handling - our function mustn't throw.
+   * 2. Data structure is small, therefore ruby GC won't benefit from knowing about it. */
+  data = (Data*) malloc(sizeof(Data)); 
+  if(data == NULL)
+    TRACE_RETURN(NULL);
+
   pixels = ipp4rMalloc(width, height, metaType, &wStep); 
-  
-  if(pixels != NULL) {
-    data->pixels = pixels;
-    data->metaType = metaType;
-    data->height = height;
-    data->width = width;
-    data->wStep = wStep;
-    data->pixelSize = pixel_size(metaType);
-  } else {
-    xfree(data);
-    data = NULL;
+  if(pixels == NULL) {
+    free(data);
+    TRACE_RETURN(NULL);
   }
 
-  return data;
-}
+  data->pixels = pixels;
+  data->metaType = metaType;
+  data->height = height;
+  data->width = width;
+  data->wStep = wStep;
+  data->pixelSize = metatype_pixel_size(metaType);
+  TRACE_RETURN(data);
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //
 // data_destroy
 // -------------------------------------------------------------------------- //
-void data_destroy(Data* data) {
+TRACE_FUNC(void, data_destroy, (Data* data)) {
   assert(data != NULL);
 
+  TRACE(("free_data %d: h=%d, w=%d, m=%d, p=%d", data, data->height, data->width, data->metaType, data->pixels))
+
   ipp4rFree(data->pixels);
-  xfree(data);
-}
+  free(data);
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //
 // data_swap
 // -------------------------------------------------------------------------- //
-void data_swap(Data* l, Data* r) {
+TRACE_FUNC(void, data_swap, (Data* l, Data* r)) {
   Data tmp;
 
   tmp = *l;
   *l = *r;
   *r = tmp;
-}
+} TRACE_END
 

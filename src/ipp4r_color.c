@@ -35,9 +35,13 @@ static void rb_ColorRef_setter(VALUE self, Color* color) {
 // -------------------------------------------------------------------------- //
 // color_new
 // -------------------------------------------------------------------------- //
-Color* color_new(Ipp32f r, Ipp32f g, Ipp32f b, Ipp32f a) {
+Color* color_new(IppMetaNumber r, IppMetaNumber g, IppMetaNumber b, IppMetaNumber a) {
   Color* color;
-  color = ALLOC(Color); // ALLOC always succeeds or throws an exception
+  
+  color = (Color*) malloc(sizeof(Color));
+  if(color == NULL)
+    return NULL;
+
   color->r = r;
   color->g = g;
   color->b = b;
@@ -51,7 +55,7 @@ Color* color_new(Ipp32f r, Ipp32f g, Ipp32f b, Ipp32f a) {
 void color_destroy(Color* color) {
   assert(color != NULL);
 
-  xfree(color); // we must use xfree here, since we allocated color with ALLOC
+  free(color);
 }
 
 
@@ -77,20 +81,20 @@ VALUE rb_Color_alloc(VALUE klass) {
 // rb_Color_initialize
 // -------------------------------------------------------------------------- //
 VALUE rb_Color_initialize(int argc, VALUE *argv, VALUE self) {
-  Ipp32f r, g, b, a;
+  IppMetaNumber r, g, b, a;
   Color* color;
 
   a = 1.0f;
   switch (argc) {
   case 4:
-    a = (IppMetaNumber) R2C_METANUM(argv[3]);
+    a = C2M_NUMBER_D(32f, R2C_FLT(argv[3]));
   case 3:
-    r = (IppMetaNumber) R2C_METANUM(argv[0]);
-    g = (IppMetaNumber) R2C_METANUM(argv[1]);
-    b = (IppMetaNumber) R2C_METANUM(argv[2]);
+    r = C2M_NUMBER_D(32f, R2C_FLT(argv[0]));
+    g = C2M_NUMBER_D(32f, R2C_FLT(argv[1]));
+    b = C2M_NUMBER_D(32f, R2C_FLT(argv[2]));
     break;
   case 1:
-    r = g = b = (Ipp32f) R2C_METANUM(argv[0]);
+    r = g = b = C2M_NUMBER_D(32f, R2C_FLT(argv[0]));
     break;
   case 0:
     r = g = b = 0.0f;
@@ -100,7 +104,9 @@ VALUE rb_Color_initialize(int argc, VALUE *argv, VALUE self) {
     break;
   }
 
-  color = color_new(r, g, b, a); // throws, cannot fail
+  color = color_new(r, g, b, a);
+  if(color == NULL)
+    rb_raise(rb_eNoMemError, "could not allocate Color structure");
 
   DATA_PTR(self) = color;
 
@@ -118,10 +124,10 @@ VALUE rb_Color_to_s(VALUE self) {
   Data_Get_Struct(self, Color, color);
 
   sprintf(buf, "#%02x%02x%02x%02x", 
-    (int) M2C_NUMBER_D(8u, R2C_METANUM(rb_funcall(self, rb_ID_r, 0))), 
-    (int) M2C_NUMBER_D(8u, R2C_METANUM(rb_funcall(self, rb_ID_g, 0))),
-    (int) M2C_NUMBER_D(8u, R2C_METANUM(rb_funcall(self, rb_ID_b, 0))),
-    (int) M2C_NUMBER_D(8u, R2C_METANUM(rb_funcall(self, rb_ID_a, 0)))
+    (int) (255.0f * rb_funcall(self, rb_ID_r, 0)), 
+    (int) (255.0f * rb_funcall(self, rb_ID_g, 0)),
+    (int) (255.0f * rb_funcall(self, rb_ID_b, 0)),
+    (int) (255.0f * rb_funcall(self, rb_ID_a, 0))
   );
   return rb_str_new2(buf);
 }
@@ -139,7 +145,14 @@ VALUE rb_Color_to_s(VALUE self) {
 // -------------------------------------------------------------------------- //
 ColorRef* colorref_new(Image* image, VALUE rb_image, int x, int y) {
   ColorRef* colorref;
-  colorref = ALLOC(ColorRef); // ALLOC always succeeds or throws an exception
+  
+  assert(image != NULL);
+  assert(x >= 0 && x < image_width(image) && y >= 0 && y < image_height(image));
+
+  colorref = (ColorRef*) malloc(sizeof(ColorRef));
+  if(colorref == NULL)
+    return NULL;
+
   colorref->image = image;
   colorref->rb_image = rb_image;
   colorref->x = x;
@@ -154,7 +167,7 @@ ColorRef* colorref_new(Image* image, VALUE rb_image, int x, int y) {
 void colorref_destroy(ColorRef* colorref) {
   assert(colorref != NULL);
 
-  xfree(colorref); // we must use xfree here, since we allocated colorref with ALLOC
+  free(colorref);
 }
 
 

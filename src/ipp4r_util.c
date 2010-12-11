@@ -4,31 +4,6 @@
 #include "ipp4r.h"
 
 // -------------------------------------------------------------------------- //
-// is_channels_supported
-// -------------------------------------------------------------------------- //
-int is_channels_supported(IppChannels channels) {
-  IPPMETACALL(channels, return, C_SUPPORTED, IPPMETAFUNC, (C_INTERCEPT, ARX_EMPTY(), TRUE), ARX_EMPTY(), FALSE);
-}
-
-// -------------------------------------------------------------------------- //
-// is_datatype_supported
-// -------------------------------------------------------------------------- //
-int is_datatype_supported(IppDataType dataType) {
-  IPPMETACALL(dataType, return, D_SUPPORTED, IPPMETAFUNC, (D_INTERCEPT, ARX_EMPTY(), TRUE), ARX_EMPTY(), FALSE);
-}
-
-
-// -------------------------------------------------------------------------- //
-// pixel_size
-// -------------------------------------------------------------------------- //
-int pixel_size(IppMetaType metaType) {
-#define METAFUNC(M, ARGS) (sizeof(D_CTYPE(M_DATATYPE(M))) * C_CNUMB(M_CHANNELS(M)))
-  IPPMETACALL(metaType, return, M_SUPPORTED, METAFUNC, ~, Unreachable(), -1);
-#undef METAFUNC
-}
-
-
-// -------------------------------------------------------------------------- //
 // get_struct_checked_ret
 // -------------------------------------------------------------------------- //
 void* get_struct_checked_ret(VALUE obj) {

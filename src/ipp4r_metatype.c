@@ -52,9 +52,43 @@ IppDataType metatype_datatype(IppMetaType metaType) {
 // metatype_compose 
 // -------------------------------------------------------------------------- //
 IppMetaType metatype_compose(IppDataType dataType, IppChannels channels) {
-#define METAFUNC_C(C, D) M_CREATE(D, C)
-#define METAFUNC_D(D, ARGS) IPPMETACALL(channels, return, C_SUPPORTED, METAFUNC_C, D, Unreachable(); return -1, ARX_EMPTY())
+#define METAFUNC_C(C, D) M_CENUM(M_CREATE(D, C))
+#define METAFUNC_D(D, ARGS) IPPMETACALL(channels, return, C_SUPPORTED, METAFUNC_C, D, Unreachable(), -1)
   IPPMETACALL(dataType, ARX_EMPTY(), D_SUPPORTED, METAFUNC_D, ~, Unreachable(); return -1, ARX_EMPTY());
 #undef METAFUNC_D
 #undef METAFUNC_C
+}
+
+
+// -------------------------------------------------------------------------- //
+// metatype_pixel_size
+// -------------------------------------------------------------------------- //
+int metatype_pixel_size(IppMetaType metaType) {
+#define METAFUNC(M, ARGS) (sizeof(D_CTYPE(M_DATATYPE(M))) * C_CNUMB(M_CHANNELS(M)))
+  IPPMETACALL(metaType, return, M_SUPPORTED, METAFUNC, ~, Unreachable(), -1);
+#undef METAFUNC
+}
+
+
+// -------------------------------------------------------------------------- //
+// is_channels_supported
+// -------------------------------------------------------------------------- //
+int is_channels_supported(IppChannels channels) {
+  IPPMETACALL(channels, return, C_SUPPORTED, IPPMETAFUNC, (0?ipp, :TRUE, ARX_EMPTY()), ARX_EMPTY(), FALSE);
+}
+
+
+// -------------------------------------------------------------------------- //
+// is_datatype_supported
+// -------------------------------------------------------------------------- //
+int is_datatype_supported(IppDataType dataType) {
+  IPPMETACALL(dataType, return, D_SUPPORTED, IPPMETAFUNC, (0?ipp, :TRUE, ARX_EMPTY()), ARX_EMPTY(), FALSE);
+}
+
+
+// -------------------------------------------------------------------------- //
+// is_metatype_supported
+// -------------------------------------------------------------------------- //
+int is_metatype_supported(IppMetaType metaType) {
+  IPPMETACALL(metaType, return, M_SUPPORTED, IPPMETAFUNC, (0?ipp, :TRUE, ARX_EMPTY()), ARX_EMPTY(), FALSE);
 }

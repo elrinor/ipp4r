@@ -4,32 +4,36 @@
 // -------------------------------------------------------------------------- //
 // rb_Image_alloc
 // -------------------------------------------------------------------------- //
-VALUE rb_Image_alloc(VALUE klass) {
-  return WRAP_IMAGE_A(NULL, klass); /* Underlying C struct will be allocated later, in "initialize" method */
-}
+TRACE_FUNC(VALUE, rb_Image_alloc, (VALUE klass)) {
+  TRACE_RETURN(image_wrap(NULL)); /* Underlying C struct will be allocated later, in "initialize" method */
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //
 // rb_Image_initialize
 // -------------------------------------------------------------------------- //
-VALUE rb_Image_initialize(int argc, VALUE *argv, VALUE self) {
+TRACE_FUNC(VALUE, rb_Image_initialize, (int argc, VALUE *argv, VALUE self)) {
   int width;
   int height;
   Image* image;
   int status;
   VALUE filler;
+  IppMetaType metaType;
 
   filler = Qnil;
+  metaType = ipp8u_C3;
 
   switch (argc) {
+  case 4:
+    filler = argv[3];
   case 3:
-    filler = argv[2];
+    metaType = R2C_ENUM(argv[2], rb_MetaType);
   case 2:
     width = R2C_INT(argv[0]);
     height = R2C_INT(argv[1]);
     if(width <= 0 || height <= 0)
       rb_raise(rb_Exception, "wrong image size: %d x %d", width, height);
-    image = image_new(width, height, ippC3);
+    image = image_new(width, height, metaType);
     break;
   case 1:
     Check_Type(argv[0], T_STRING);
@@ -37,7 +41,7 @@ VALUE rb_Image_initialize(int argc, VALUE *argv, VALUE self) {
     raise_on_error(status);
     break;
   default:
-    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1 or 2)", argc);
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1, 2, 3 or 4)", argc);
     break;
   }
 
@@ -45,29 +49,53 @@ VALUE rb_Image_initialize(int argc, VALUE *argv, VALUE self) {
     rb_raise(rb_eNoMemError, "failed to create new image");
 
   DATA_PTR(self) = image;
+  image_share(image);
 
   if(filler != Qnil)
     rb_Image_fill_bang(self, filler);
 
-  return self;
-}
+  TRACE_RETURN(self);
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //
 // rb_Image_initialize_copy
 // -------------------------------------------------------------------------- //
-VALUE rb_Image_initialize_copy(VALUE self, VALUE other) {
-  Image* newImage;
+TRACE_FUNC(VALUE, rb_Image_initialize_copy, (VALUE self, VALUE other)) {
+  Image* image;
   int status;
 
-  newImage = image_clone(Data_Get_Struct_Ret(other, Image), &status);
+  image = image_clone(Data_Get_Struct_Ret(other, Image), &status);
 
   raise_on_error(status);
 
-  DATA_PTR(self) = newImage;
+  DATA_PTR(self) = image;
+  image_share(image);
 
-  return self;
-}
+  TRACE_RETURN(self);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_jaehne
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(VALUE, rb_Image_jaehne, (int argc, VALUE *argv, VALUE klass)) {
+  VALUE r_image;
+  int status;
+
+  if(argc != 2 && argc != 3)
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 2 or 3)", argc);
+
+  r_image = rb_Image_initialize(argc, argv, rb_Image_alloc(klass));
+
+  rb_gc_register_address(&r_image); /* tell ruby gc this object is in use */
+  status = image_jaehne(Data_Get_Struct_Ret(r_image, Image));
+  rb_gc_unregister_address(&r_image);
+
+  raise_on_error(status);
+
+  TRACE_RETURN(r_image);
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //
@@ -120,7 +148,7 @@ VALUE rb_Image_subimage(int argc, VALUE *argv, VALUE self) {
   newImage = image_subimage(image, x0, y0, width, height, &status);
   raise_on_error(status);
 
-  return WRAP_IMAGE(newImage);
+  return image_wrap(newImage);
 }
 
 
@@ -139,7 +167,7 @@ VALUE rb_Image_save(VALUE self, VALUE fileName) {
 // rb_Image_add_rand_uniform_bang
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_add_rand_uniform_bang(VALUE self, VALUE lo, VALUE hi) {
-  raise_on_error(image_addranduniform(Data_Get_Struct_Ret(self, Image), R2C_INT(lo), R2C_INT(hi)));
+  raise_on_error(image_addranduniform(Data_Get_Struct_Ret(self, Image), R2M_NUM(lo), R2M_NUM(hi)));
 
   return self;
 }
@@ -191,34 +219,70 @@ VALUE rb_Image_channels(VALUE self) {
 
 
 // -------------------------------------------------------------------------- //
+// rb_Image_datatype
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_datatype(VALUE self) {
+  Image* image;
+  VALUE result;
+
+  Data_Get_Struct(self, Image, image);
+
+  return C2R_ENUM(image_datatype(image), rb_DataType);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_datatype
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_metatype(VALUE self) {
+  Image* image;
+  VALUE result;
+
+  Data_Get_Struct(self, Image, image);
+
+  return C2R_ENUM(image_metatype(image), rb_MetaType);
+}
+
+
+// -------------------------------------------------------------------------- //
 // rb_Image_convert
 // -------------------------------------------------------------------------- //
-VALUE rb_Image_convert(VALUE self, VALUE r_channels) {
+TRACE_FUNC(VALUE, rb_Image_convert, (VALUE self, VALUE r_metatype)) {
   Image* result;
   int status;
 
-  result = image_convert_copy(Data_Get_Struct_Ret(self, Image), R2C_ENUM(r_channels, rb_Channels), &status);
+  result = image_convert_copy(Data_Get_Struct_Ret(self, Image), R2C_ENUM(r_metatype, rb_MetaType), &status);
   raise_on_error(status);
 
-  return WRAP_IMAGE(result);
-}
+  TRACE_RETURN(image_wrap(result));
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //
 // rb_Image_convert_bang
 // -------------------------------------------------------------------------- //
-VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels) {
-  /*raise_on_error*/(image_convert(Data_Get_Struct_Ret(self, Image), R2C_ENUM(r_channels, rb_Channels)));
+TRACE_FUNC(VALUE, rb_Image_convert_bang, (VALUE self, VALUE r_metatype)) {
+  raise_on_error(image_convert(Data_Get_Struct_Ret(self, Image), R2C_ENUM(r_metatype, rb_MetaType)));
   
-  return self;
-}
+  TRACE_RETURN(self);
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //
 // rb_Image_ref
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_ref(VALUE self, VALUE x, VALUE y) {
-  return rb_ColorRef_check_raise(WRAP_COLORREF(colorref_new(Data_Get_Struct_Ret(self, Image), self, R2C_INT(x), R2C_INT(y))));
+  Image* image;
+  int cx, cy;
+
+  image = Data_Get_Struct_Ret(self, Image);
+  cx = R2C_INT(x);
+  cy = R2C_INT(y);
+
+  if(cx < 0 || cx >= image_width(image) || cy < 0 || cy >= image_height(image))
+    rb_raise(rb_Exception, "trying to access pixel outside of image boundaries");
+
+  return WRAP_COLORREF(colorref_new(image, self, cx, cy));
 }
 
 
@@ -226,7 +290,15 @@ VALUE rb_Image_ref(VALUE self, VALUE x, VALUE y) {
 // rb_Image_ref_eq
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_ref_eq(VALUE self, VALUE x, VALUE y, VALUE color) {
-  return rb_ColorRef_set(rb_Image_ref(self, x, y), color);
+  VALUE colorRef;
+
+  colorRef = rb_Image_ref(self, x, y);
+  
+  rb_gc_register_address(&colorRef); /* tell ruby gc this object is in use */
+  rb_ColorRef_set(colorRef, color);
+  rb_gc_unregister_address(&colorRef);
+
+  return colorRef;
 }
 
 
@@ -235,13 +307,10 @@ VALUE rb_Image_ref_eq(VALUE self, VALUE x, VALUE y, VALUE color) {
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_fill_bang(VALUE self, VALUE rb_color) {
   Color color;
-  Image* image;
-
-  image = Data_Get_Struct_Ret(self, Image);
 
   R2C_COLOR(color, rb_color);
 
-  raise_on_error(image_fill(image, &color));
+  raise_on_error(image_fill(Data_Get_Struct_Ret(self, Image), &color));
 
   return self;
 }
@@ -251,7 +320,14 @@ VALUE rb_Image_fill_bang(VALUE self, VALUE rb_color) {
 // rb_Image_fill
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_fill(VALUE self, VALUE color) {
-  return rb_Image_fill_bang(rb_funcall(self, rb_ID_clone, 0), color);
+  VALUE r_image;
+
+  r_image = rb_funcall(self, rb_ID_clone, 0);
+  rb_gc_register_address(&r_image); /* tell ruby gc this object is in use */
+  rb_Image_fill_bang(r_image, color);
+  rb_gc_unregister_address(&r_image);
+
+  return r_image;
 }
 
 
@@ -265,7 +341,7 @@ VALUE rb_Image_transpose(VALUE self) {
   newImage = image_transpose_copy(Data_Get_Struct_Ret(self, Image), &status);
   raise_on_error(status);
 
-  return WRAP_IMAGE(newImage);
+  return image_wrap(newImage);
 }
 
 
@@ -303,6 +379,5 @@ VALUE rb_Image_threshold(int argc, VALUE* argv, VALUE self) {
   newImage = image_threshold_copy(Data_Get_Struct_Ret(self, Image), &threshold, cmp, &value, &status);
   raise_on_error(status);
 
-  return WRAP_IMAGE(newImage);
-  return Qnil;
+  return image_wrap(newImage);
 }

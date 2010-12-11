@@ -62,7 +62,7 @@ struct _ColorRef {
  * @param g green color component
  * @param b blue color component
  * @param a alpha color component
- * @returns newly allocated Color, or throws a ruby exception in case of an error.
+ * @returns newly allocated Color, or NULL in case of an error.
  */
 Color* color_new(IppMetaNumber r, IppMetaNumber g, IppMetaNumber b, IppMetaNumber a);
 
@@ -130,7 +130,7 @@ VALUE rb_Color_to_s(VALUE self);
 /**
  * Allocates memory for ColorRef and initializes it.
  *
- * @returns newly allocated ColorRef, or throws a ruby exception in case of an error.
+ * @returns newly allocated ColorRef, or NULL in case of an error.
  */
 ColorRef* colorref_new(Image* image, VALUE rb_image, int x, int y);
 

@@ -18,7 +18,7 @@ VALUE rb_Image_alloc(VALUE klass);
 /**
  * Method: 
  * <ul>
- * <li> <tt>Ipp::Image#initialize(width, height, [fill])</tt>
+ * <li> <tt>Ipp::Image#initialize(width, height, metatype = Ipp8u_C3, [fill])</tt>
  * <li> <tt>Ipp::Image#initialize(fileName)</tt>
  * </ul>
  *         
@@ -38,6 +38,17 @@ VALUE rb_Image_initialize(int argc, VALUE *argv, VALUE self);
  * Initialize copy, for clone & dup
  */
 VALUE rb_Image_initialize_copy(VALUE self, VALUE other);
+
+
+/**
+ * Singleton method:
+ * <ul>
+ * <li> <tt>Ipp::Image#jaehne(width, height, metatype = Ipp8u_C3)</tt>
+ * </ul>
+ *
+ * Creates Jaehne test image
+ */
+VALUE rb_Image_jaehne(int argc, VALUE *argv, VALUE klass);
 
 
 /**
@@ -130,10 +141,32 @@ VALUE rb_Image_channels(VALUE self);
 /**
  * Method:
  * <ul>
- * <li> <tt>Ipp::Image#convert(Channels to) </tt>
+ * <li> <tt>Ipp::Image#datatype</tt>
  * </ul>
  * 
- * Creates a copy of image and converts it to another channel type.
+ * Datatype reader.
+ */
+VALUE rb_Image_datatype(VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#metatype</tt>
+ * </ul>
+ * 
+ * Metatype reader.
+ */
+VALUE rb_Image_metatype(VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#convert(MetaType to) </tt>
+ * </ul>
+ * 
+ * Creates a copy of image and converts it to another metatype.
  */
 VALUE rb_Image_convert(VALUE self, VALUE r_channels);
 
@@ -141,13 +174,13 @@ VALUE rb_Image_convert(VALUE self, VALUE r_channels);
 /**
  * Method:
  * <ul>
- * <li> <tt>Ipp::Image#convert!(Channels to) </tt>
+ * <li> <tt>Ipp::Image#convert!(MetaType to) </tt>
  * </ul>
  * 
- * Converts given image to another channel type.
+ * Converts given image to another metatype.
  * @returns self
  */
-VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels);
+VALUE rb_Image_convert_bang(VALUE self, VALUE r_metatype);
 
 
 /**
@@ -216,8 +249,6 @@ VALUE rb_Image_transpose(VALUE self);
  * @returns a thresholded copy of a source image
  */
 VALUE rb_Image_threshold(int argc, VALUE* argv, VALUE self);
-
-
 
 
 #ifdef __cplusplus

@@ -11,24 +11,6 @@ extern "C" {
 // Function prototypes
 // -------------------------------------------------------------------------- //
 /**
- * @returns TRUE if the given IppChannels enum is supported, FALSE otherwise
- */
-int is_channels_supported(IppChannels channels);
-
-
-/**
- * @returns TRUE if the given IppDataType is supported, FALSE otherwise
- */
-int is_datatype_supported(IppDataType dataType);
-
-
-/**
- * @return size in bytes of one pixel for given channels
- */
-int pixel_size(IppMetaType metaType);
-
-
-/**
  * Replacement for ruby's Data_Get_Struct macro. <br/>
  * Rationale: this is a function with return value => it can be used in expressions, unlike Data_Get_Struct, which is a statement. "Syntactic sugar", that's it.
  */

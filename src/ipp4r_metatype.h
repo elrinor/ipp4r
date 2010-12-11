@@ -46,6 +46,7 @@ extern "C" {
 #define D_SUPPORTED (3, (8u,     16u,      32f))
 #define D_ALL       (4, (8u,     16u,      32f,    32s))
 #define D_SCALE_MAP (4, (255.0f, 65535.0f, 1.0f,   2147483647.0f))
+#define D_MAX_MAP   (4, (255,    65535,    1.0f,   2147483647))
 
 #define C_SUPPORTED (3, (C1, C3, AC4))
 #define C_ALL       (4, (C1, C3, AC4, C4))
@@ -99,22 +100,6 @@ extern "C" {
 
 
 // -------------------------------------------------------------------------- //
-// pp-time interceptors
-// -------------------------------------------------------------------------- //
-#define C_INTERCEPT C_INTERCEPT_
-#define C_INTERCEPT_C1
-#define C_INTERCEPT_C3
-#define C_INTERCEPT_AC4
-#define C_INTERCEPT_C4
-
-#define D_INTERCEPT D_INTERCEPT_
-#define D_INTERCEPT_8u
-#define D_INTERCEPT_16u
-#define D_INTERCEPT_32f
-#define D_INTERCEPT_32s
-
-
-// -------------------------------------------------------------------------- //
 // pp-time functions
 // -------------------------------------------------------------------------- //
 #define M_DATATYPE(METATYPE) ARX_ARRAY_ELEM(M_INDEX(METATYPE), M_DATATYPE_MAP)
@@ -134,6 +119,7 @@ extern "C" {
 #define D_CTYPE(DATATYPE) ARX_JOIN(Ipp, DATATYPE)
 #define D_CENUM(DATATYPE) ARX_JOIN(ipp, DATATYPE)
 #define D_SCALE(DATATYPE) ARX_ARRAY_ELEM(D_INDEX(DATATYPE), D_SCALE_MAP)
+#define D_MAX(DATATYPE) ARX_ARRAY_ELEM(D_INDEX(DATATYPE), D_MAX_MAP)
 
 #define C_CENUM(CHANNELS) ARX_JOIN(ipp, CHANNELS)
 #define C_CNUMB(CHANNELS) ARX_ARRAY_ELEM(C_INDEX(CHANNELS), C_COUNT_MAP)
@@ -151,11 +137,28 @@ extern "C" {
 #define D_EQ_D(DATATYPE_0, DATATYPE_1) ARX_EQUAL(D_INDEX(DATATYPE_0), D_INDEX(DATATYPE_1))
 #define C_EQ_C(CHANNELS_0, CHANNELS_1) ARX_EQUAL(C_INDEX(CHANNELS_0), C_INDEX(CHANNELS_1))
 
+#define IF_M_EQ_M(METATYPE_0, METATYPE_1, T, F) ARX_IF(M_EQ_M(METATYPE_0, METATYPE_1), T, F)
 #define IF_M_IS_C(METATYPE, DATATYPE, T, F) ARX_IF(M_IS_C(METATYPE, DATATYPE), T, F)
 #define IF_M_IS_D(METATYPE, DATATYPE, T, F) ARX_IF(M_IS_D(METATYPE, DATATYPE), T, F)
 
 #define IF_D_EQ_D(DATATYPE_0, DATATYPE_1, T, F) ARX_IF(D_EQ_D(DATATYPE_0, DATATYPE_1), T, F)
 #define IF_C_EQ_C(CHANNELS_0, CHANNELS_1, T, F) ARX_IF(C_EQ_C(CHANNELS_0, CHANNELS_1), T, F)
+
+#define D_IN_D_2(DATATYPE, DATATYPE_0, DATATYPE_1) ARX_OR(D_EQ_D(DATATYPE, DATATYPE_0), D_EQ_D(DATATYPE, DATATYPE_1))
+#define C_IN_C_2(CHANNELS, CHANNELS_0, CHANNELS_1) ARX_OR(C_EQ_C(CHANNELS, CHANNELS_0), C_EQ_C(CHANNELS, CHANNELS_1))
+
+#define DD_EQ_DD(DATATYPE_PAIR_0, DATATYPE_PAIR_1)                              \
+  ARX_AND(D_EQ_D(ARX_TUPLE_ELEM(2, 0, DATATYPE_PAIR_0), ARX_TUPLE_ELEM(2, 0, DATATYPE_PAIR_1)), D_EQ_D(ARX_TUPLE_ELEM(2, 1, DATATYPE_PAIR_0), ARX_TUPLE_ELEM(2, 1, DATATYPE_PAIR_1)))
+#define CC_EQ_CC(CHANNELS_PAIR_0, CHANNELS_PAIR_1)                              \
+  ARX_AND(C_EQ_C(ARX_TUPLE_ELEM(2, 0, CHANNELS_PAIR_0), ARX_TUPLE_ELEM(2, 0, CHANNELS_PAIR_1)), C_EQ_C(ARX_TUPLE_ELEM(2, 1, CHANNELS_PAIR_0), ARX_TUPLE_ELEM(2, 1, CHANNELS_PAIR_1)))
+
+#define IF_DD_EQ_DD(DATATYPE_PAIR_0, DATATYPE_PAIR_1, T, F)                     \
+  ARX_IF(DD_EQ_DD(DATATYPE_PAIR_0, DATATYPE_PAIR_1), T, F)
+#define IF_CC_EQ_CC(CHANNELS_PAIR_0, CHANNELS_PAIR_1, T, F)                     \
+  ARX_IF(CC_EQ_CC(CHANNELS_PAIR_0, CHANNELS_PAIR_1), T, F)
+
+#define DD_IN_DDA(DATATYPE_PAIR, DATATYPE_PAIR_ARRAY) ARX_ARRAY_EXISTS(DATATYPE_PAIR_ARRAY, DD_EQ_DD, DATATYPE_PAIR)
+#define CC_IN_CCA(CHANNELS_PAIR, CHANNELS_PAIR_ARRAY) ARX_ARRAY_EXISTS(CHANNELS_PAIR_ARRAY, CC_EQ_CC, CHANNELS_PAIR)
 
 
 // -------------------------------------------------------------------------- //
@@ -196,28 +199,76 @@ typedef enum {
 
 #define IPPMETACALL ARX_JOIN(IPPMETACALL_, ARX_AUTO_REC(IPPMETACALL_P, 4))
 
-#define ARX_ARRAY_FOREACH_P(n) ARX_JOIN(ARX_ARRAY_FOREACH_CHECK_, ARX_ARRAY_FOREACH_ ## n((1, (0)), ARX_NIL ARX_TUPLE_EAT_2, ARX_NIL))
+#define IPPMETACALL_P(n) ARX_JOIN(IPPMETACALL_CHECK_, IPPMETACALL_ ## n(~, ~, (1, (IPPMETACALL_EMPTY)), ~, ~, ~, ~))
 
-#define ARX_ARRAY_FOREACH_CHECK_ARX_NIL 1
-#define ARX_ARRAY_FOREACH_CHECK_ARX_ARRAY_FOREACH_1(ARRAY, M, ARG) 0
-#define ARX_ARRAY_FOREACH_CHECK_ARX_ARRAY_FOREACH_2(ARRAY, M, ARG) 0
-#define ARX_ARRAY_FOREACH_CHECK_ARX_ARRAY_FOREACH_3(ARRAY, M, ARG) 0
+#define IPPMETACALL_CHECK_ARX_NIL 1
+#define IPPMETACALL_CHECK_IPPMETACALL_1(A, B, C, D, E, F, G) 0
+#define IPPMETACALL_CHECK_IPPMETACALL_2(A, B, C, D, E, F, G) 0
+#define IPPMETACALL_CHECK_IPPMETACALL_3(A, B, C, D, E, F, G) 0
 
-#define ARX_ARRAY_FOREACH_1(ARRAY, M, ARG) ARX_ARRAY_FOREACH_1_OO(ARX_ARRAY_SIZE(ARRAY), ARX_ARRAY_REVERSE(ARRAY), M, ARG)
+#define IPPMETACALL_EMPTY_HELPER_IPPMETACALL_EMPTY
 
-
-#define IPPMETACALL(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE) \
+#define IPPMETACALL_1(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE) \
+  ARX_IF(ARX_EQUAL(ARX_ARRAY_SIZE(CRITERIA_ARRAY), 1),                          \
+    ARX_IF(ARX_IS_EMPTY(ARX_JOIN(IPPMETACALL_EMPTY_HELPER_, ARX_ARRAY_ELEM(0, CRITERIA_ARRAY))), \
+      ARX_NIL ARX_TUPLE_EAT_7,                                                  \
+      IPPMETACALL_1_I                                                           \
+    ),                                                                          \
+    IPPMETACALL_1_I                                                             \
+  )(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE)
+#define IPPMETACALL_1_I(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE) \
   switch(CRITERIA) {                                                            \
-  ARX_ARRAY_FOREACH(CRITERIA_ARRAY, IPPMETACALL_I, (3, (LEFT_PART, FUNCTION, ARGS))) \
+  ARX_ARRAY_FOREACH(CRITERIA_ARRAY, IPPMETACALL_1_II, (3, (LEFT_PART, FUNCTION, ARGS))) \
   default:                                                                      \
     DEFAULT_ACTION;                                                             \
     LEFT_PART DEFAULT_VALUE;                                                    \
   }
-
-#define IPPMETACALL_I(METATYPE, ARGS)                                           \
+#define IPPMETACALL_1_II(METATYPE, ARGS)                                        \
   case M_CENUM(METATYPE):                                                       \
     ARX_ARRAY_ELEM(0, ARGS) ARX_ARRAY_ELEM(1, ARGS)(METATYPE, ARX_ARRAY_ELEM(2, ARGS)); \
     break;
+
+#define IPPMETACALL_2(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE) \
+  ARX_IF(ARX_EQUAL(ARX_ARRAY_SIZE(CRITERIA_ARRAY), 1),                          \
+    ARX_IF(ARX_IS_EMPTY(ARX_JOIN(IPPMETACALL_EMPTY_HELPER_, ARX_ARRAY_ELEM(0, CRITERIA_ARRAY))), \
+      ARX_NIL ARX_TUPLE_EAT_7,                                                  \
+      IPPMETACALL_2_I                                                           \
+    ),                                                                          \
+    IPPMETACALL_2_I                                                             \
+  )(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE)
+#define IPPMETACALL_2_I(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE) \
+  switch(CRITERIA) {                                                            \
+  ARX_ARRAY_FOREACH(CRITERIA_ARRAY, IPPMETACALL_2_II, (3, (LEFT_PART, FUNCTION, ARGS))) \
+  default:                                                                      \
+    DEFAULT_ACTION;                                                             \
+    LEFT_PART DEFAULT_VALUE;                                                    \
+  }
+#define IPPMETACALL_2_II(METATYPE, ARGS)                                        \
+  case M_CENUM(METATYPE):                                                       \
+    ARX_ARRAY_ELEM(0, ARGS) ARX_ARRAY_ELEM(1, ARGS)(METATYPE, ARX_ARRAY_ELEM(2, ARGS)); \
+    break;
+
+#define IPPMETACALL_3(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE) \
+  ARX_IF(ARX_EQUAL(ARX_ARRAY_SIZE(CRITERIA_ARRAY), 1),                          \
+    ARX_IF(ARX_IS_EMPTY(ARX_JOIN(IPPMETACALL_EMPTY_HELPER_, ARX_ARRAY_ELEM(0, CRITERIA_ARRAY))), \
+      ARX_NIL ARX_TUPLE_EAT_7,                                                  \
+      IPPMETACALL_3_I                                                           \
+    ),                                                                          \
+    IPPMETACALL_3_I                                                             \
+  )(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE)
+#define IPPMETACALL_3_I(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE) \
+  switch(CRITERIA) {                                                            \
+  ARX_ARRAY_FOREACH(CRITERIA_ARRAY, IPPMETACALL_3_II, (3, (LEFT_PART, FUNCTION, ARGS))) \
+  default:                                                                      \
+    DEFAULT_ACTION;                                                             \
+    LEFT_PART DEFAULT_VALUE;                                                    \
+  }
+#define IPPMETACALL_3_II(METATYPE, ARGS)                                        \
+  case M_CENUM(METATYPE):                                                       \
+    ARX_ARRAY_ELEM(0, ARGS) ARX_ARRAY_ELEM(1, ARGS)(METATYPE, ARX_ARRAY_ELEM(2, ARGS)); \
+    break;
+
+#define IPPMETACALL_4(CRITERIA, LEFT_PART, CRITERIA_ARRAY, FUNCTION, ARGS, DEFAULT_ACTION, DEFAULT_VALUE) OMG_TEH_DRAMA
 
 
 // -------------------------------------------------------------------------- //
@@ -249,6 +300,34 @@ IppDataType metatype_datatype(IppMetaType metaType);
  * @returns IppMetaType composed of given IppDataType and IppChannels
  */
 IppMetaType metatype_compose(IppDataType dataType, IppChannels channels);
+
+
+/**
+ * @return size in bytes of one pixel for given metatype
+ */
+int metatype_pixel_size(IppMetaType metaType);
+
+
+// -------------------------------------------------------------------------- //
+// is_supported functions
+// -------------------------------------------------------------------------- //
+/**
+ * @returns TRUE if the given IppChannels enum is supported, FALSE otherwise
+ */
+int is_channels_supported(IppChannels channels);
+
+
+/**
+ * @returns TRUE if the given IppDataType is supported, FALSE otherwise
+ */
+int is_datatype_supported(IppDataType dataType);
+
+
+/**
+ * @returns TRUE if the given IppMetaType is supported, FALSE otherwise
+ */
+int is_metatype_supported(IppMetaType metaType);
+
 
 
 #ifdef __cplusplus

@@ -38,7 +38,18 @@ extern "C" {
  *
  * Another thing you must know is that there exist no way to change the size of an existing Data structure. Motivation: change of size involves creating of a new image and
  * is not an in-place operation. Also change of size may invalidate pixel references or even Image structures. That's why all in-place operations does not change the size of
- * an image.
+ * an image.<p>
+ *
+ * As I've noted above, we use ruby gc for sharing one Data structure between several images. It's a nice approach, but it gives rise to many subtle problems.
+ * Consider the following example:
+ * <code>
+ *   Image* img = image_new(...);
+ *   // work with heap using ruby's xalloc
+ *   image_transpose(img); // use image
+ * </code>
+ * It seems everything is OK, but it's not. A call to xalloc may trigger gc, which will sweep out the underlying shared Data structure and we'll end up with a segmentation fault.
+ * To avoid it, we use lazy gc registration of Data structure - it gets registered in image_wrap. And if you call image_destroy before a call to image_wrap, the Data will be 
+ * deallocated too.
  */
 struct _Image {
   VALUE rb_data;        /**< Ruby wrapper around Data associated with this Image */
@@ -49,6 +60,8 @@ struct _Image {
   int y;                /**< ROI y coordinate */
   int width;            /**< width of ROI in pixels */
   int height;           /**< height of ROI in pixels */
+
+  int shared;           /**< registered in ruby GC and ready for sharing? @see image_new */
 };
 
 // -------------------------------------------------------------------------- //
@@ -57,6 +70,9 @@ struct _Image {
 /**
  * Allocates memory for image.
  * 
+ * @param shared Indicates whether the underlying data structure must be registered in ruby GC. If shared is TRUE, then image_destroy does not deallocate the data, since it
+ *   can be used by other Image instances. If shared is FALSE, then image_destroy also deallocates the data. Use shared=FALSE when you create a temporary Image object inside 
+ *   your C code and do not want ruby GC to accidentally sweep it out while it's still in use.
  * @returns newly allocated Image, or NULL in case of an error.
  */
 Image* image_new(int width, int height, IppMetaType metaType);
@@ -88,6 +104,18 @@ void image_destroy(Image* image);
  * Mark function for ruby mark'n'sweep garbage collector.
  */
 void image_mark(Image* image);
+
+
+/**
+ * Wrap function - wraps an Image* into VALUE and registers it in ruby gc.
+ */
+VALUE image_wrap(Image* image);
+
+
+/**
+ * Turns Image* into shared object by registering the underlying Data structure in ruby gc.
+ */
+void image_share(Image* image);
 
 
 /**
@@ -162,24 +190,69 @@ int image_addranduniform(Image* image, IppMetaNumber lo, IppMetaNumber hi);
 
 
 /**
- * Converts given image to given channel type.
+ * Converts the given image to given data type.
  * 
  * @param image source image
- * @param channels new channel type
+ * @param dataType new data type
  * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
  * @returns a newly created converted image, or NULL in case of an error
  */
-Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus);
+Image* image_convert_datatype_copy(Image* image, IppDataType dataType, int* pStatus);
 
 
 /**
- * Converts given image to given channel type.
+ * Converts the given image to given data type. Performs in-place conversion.
  * 
  * @param image source image
- * @param channels new channel type
+ * @param dataType new data type
  * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ * @see image_convert_datatype_copy
  */
-int image_convert(Image* image, IppChannels channels);
+int image_convert_datatype(Image* image, IppDataType dataType);
+
+
+/**
+ * Converts the given image to given channels type.
+ * 
+ * @param image source image
+ * @param channels new channels type
+ * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
+ * @returns a newly created converted image, or NULL in case of an error
+ */
+Image* image_convert_channels_copy(Image* image, IppChannels channels, int* pStatus);
+
+
+/**
+ * Converts the given image to given channels type. Performs in-place conversion.
+ * 
+ * @param image source image
+ * @param channels new channels type
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ * @see image_convert_channels_copy
+ */
+int image_convert_channels(Image* image, IppChannels channels);
+
+
+/**
+ * Converts the given image to given metatype.
+ * 
+ * @param image source image
+ * @param metaType new metatype
+ * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
+ * @returns a newly created converted image, or NULL in case of an error
+ */
+Image* image_convert_copy(Image* image, IppMetaType metaType, int* pStatus);
+
+
+/**
+ * Converts the given image to given metatype. Performs in-place conversion.
+ * 
+ * @param image source image
+ * @param metaType new metatype
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ * @see image_convert_copy
+ */
+int image_convert(Image* image, IppMetaType metaType);
 
 
 /**
@@ -240,6 +313,15 @@ Image* image_transpose_copy(Image* image, int* pStatus);
 Image* image_threshold_copy(Image* image, Color* threshold, IppCmpOp cmp, Color* value, int* pStatus);
 
 
+/**
+ * Creates Jaehne test image.
+ *
+ * @param image target image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_jaehne(Image* image);
+
+
 /*
  * Applies gaussian blur filter on src image, storing result in dst.
  *
@@ -258,16 +340,6 @@ Image* image_threshold_copy(Image* image, Color* threshold, IppCmpOp cmp, Color*
  * @returns textual description of an error or warning
  */
 const char* image_error_message(int status);
-
-
-// -------------------------------------------------------------------------- //
-// Macros
-// -------------------------------------------------------------------------- //
-#define WRAP_IMAGE_A(IMAGE, CLASS)                                              \
-  Data_Wrap_Struct((CLASS), image_mark, image_destroy, (IMAGE))
-
-#define WRAP_IMAGE(IMAGE)                                                       \
-  WRAP_IMAGE_A(IMAGE, rb_Image)
 
 
 #ifdef __cplusplus

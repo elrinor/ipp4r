@@ -56,6 +56,10 @@ void Init_ipp4r() {
   ARX_ARRAY_FOREACH(IPP4R_IDS, IPP4R_ID_SET_I, ARX_EMPTY)
 #undef IPP4R_ID_SET_I
 
+  /* trace depth */
+  trace_depth = 0;
+
+
   /* Then init Ipp module */
   rb_Ipp = rb_define_module("Ipp");
 
@@ -69,17 +73,19 @@ void Init_ipp4r() {
   rb_define_method(rb_Enum, "<=>", rb_Enum_spaceship, 1);
   rb_define_method(rb_Enum, "===", rb_Enum_case_eq, 1);
 
+#define DEFINE_ENUM(E, ARG) ENUM(ARX_JOIN(ipp, E), ARX_STRINGIZE(ARX_JOIN(Ipp, E)))
+  ENUM_DEF(rb_MetaType, "MetaType")
+    ARX_ARRAY_FOREACH(M_SUPPORTED, DEFINE_ENUM, ~)
+  ENUM_END()
+  
   ENUM_DEF(rb_Channels, "Channels")
-    ENUM(ippC1,  "IppC1")
-    ENUM(ippC3,  "IppC3")
-    ENUM(ippAC4, "IppAC4")
+    ARX_ARRAY_FOREACH(C_SUPPORTED, DEFINE_ENUM, ~)
   ENUM_END()
-
+  
   ENUM_DEF(rb_DataType, "DataType")
-    ENUM(ipp8u,  "Ipp8u")
-    ENUM(ipp16u, "Ipp16u")
-    ENUM(ipp32f, "Ipp32f")
+  ARX_ARRAY_FOREACH(D_SUPPORTED, DEFINE_ENUM, ~)
   ENUM_END()
+#undef DEFINE_ENUM
 
   ENUM_DEF(rb_CmpOp, "CmpOp")
     ENUM(ippCmpLess,    "LessThan")
@@ -88,6 +94,7 @@ void Init_ipp4r() {
 
   /* And all other classes */
   rb_Image = rb_define_class_under(rb_Ipp, "Image", rb_cObject);
+  rb_define_singleton_method(rb_Image, "jaehne", rb_Image_jaehne, -1);
   rb_define_alloc_func(rb_Image, rb_Image_alloc);
   rb_define_method(rb_Image, "initialize", rb_Image_initialize, -1);
   rb_define_method(rb_Image, "initialize_copy", rb_Image_initialize_copy, 1);
@@ -99,6 +106,8 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "width", rb_Image_width, 0);
   rb_define_method(rb_Image, "height", rb_Image_height, 0);
   rb_define_method(rb_Image, "channels", rb_Image_channels, 0);
+  rb_define_method(rb_Image, "metatype", rb_Image_metatype, 0);
+  rb_define_method(rb_Image, "datatype", rb_Image_datatype, 0);
   rb_define_method(rb_Image, "[]", rb_Image_ref, 2);
   rb_define_method(rb_Image, "[]=", rb_Image_ref_eq, 3);
   rb_define_method(rb_Image, "fill!", rb_Image_fill_bang, 1);
@@ -117,7 +126,6 @@ void Init_ipp4r() {
   RB_DEFINE_ACCESSOR(Color, g);
   RB_DEFINE_ACCESSOR(Color, b);
   RB_DEFINE_ACCESSOR(Color, a);
-  rb_define_method(rb_Color, "gray", rb_Color_gray, 0);
 
   rb_ColorRef = rb_define_class_under(rb_Image, "ColorRef", rb_cObject);
   rb_define_method(rb_ColorRef, "to_s", rb_Color_to_s, 0);
@@ -127,7 +135,6 @@ void Init_ipp4r() {
   RB_DEFINE_ACCESSOR(ColorRef, a);
   RB_DEFINE_READER(ColorRef, x);
   RB_DEFINE_READER(ColorRef, x);
-  rb_define_method(rb_ColorRef, "gray", rb_Color_gray, 0);
 
   rb_Exception = rb_define_class_under(rb_Ipp, "Exception", rb_eStandardError);
 

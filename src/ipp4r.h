@@ -26,6 +26,39 @@ extern "C" {
 #endif
 
 // -------------------------------------------------------------------------- //
+// Config
+// -------------------------------------------------------------------------- //
+#define USE_TRACE
+
+// -------------------------------------------------------------------------- //
+// Debug facilities
+// -------------------------------------------------------------------------- //
+#define Unreachable() assert(!"Unreachable")
+
+IPP4R_EXTERN int trace_depth;
+
+#ifdef USE_TRACE
+#  define IS_VOID_HELPER_void 
+#  define IS_VOID(v) ARX_IS_EMPTY(ARX_JOIN(IS_VOID_HELPER_, v))
+#  define TRACE_HELPER_TAIL() for(trace_i = trace_depth; trace_i > 0; trace_i--) printf("-")
+#  define TRACE_HELPER_BORDER(C) TRACE_HELPER_TAIL(); printf(C __FUNCTION__"\n")
+#  define TRACE_FUNC(RETURN_TYPE, FUNC_NAME, ARGS)                              \
+  RETURN_TYPE FUNC_NAME ARGS { int trace_i; ARX_IF(IS_VOID(RETURN_TYPE), ARX_EMPTY(), RETURN_TYPE trace_retval;) TRACE_HELPER_BORDER(">"); trace_depth++;
+#  define TRACE_END trace_depth--; TRACE_HELPER_BORDER("<"); }
+#  define TRACE_RETURN(val) { trace_retval = (val); trace_depth--; TRACE_HELPER_BORDER("<"); return trace_retval; }
+#  define TRACE_RETURN_0() { trace_depth--; TRACE_HELPER_BORDER("<"); return; }
+#  define TRACE(PRINTF_ARGS) {TRACE_HELPER_TAIL(); printf(":"); printf PRINTF_ARGS; printf("\n");}
+#else
+#  define TRACE_FUNC(RETURN_TYPE, FUNC_NAME, ARGS) RETURN_TYPE FUNC_NAME ARGS
+#  define TRACE_END
+#  define TRACE_RETURN(val) return (val)
+#  define TRACE_RETURN_0() return
+#  define TRACE(PRINTF_ARGS) 
+#endif
+
+//#define DBG() printf("%s", "#####"__FUNCTION__ ":" ARX_STRINGIZE(__LINE__) "!\n");
+
+// -------------------------------------------------------------------------- //
 // Global class variables
 // -------------------------------------------------------------------------- //
 IPP4R_EXTERN VALUE rb_Ipp;
@@ -40,8 +73,8 @@ IPP4R_EXTERN VALUE rb_Exception;
 IPP4R_EXTERN VALUE rb_Enum;
 IPP4R_EXTERN VALUE rb_Channels;
 IPP4R_EXTERN VALUE rb_DataType;
+IPP4R_EXTERN VALUE rb_MetaType;
 IPP4R_EXTERN VALUE rb_CmpOp;
-
 
 // -------------------------------------------------------------------------- //
 // Frequently used IDs
