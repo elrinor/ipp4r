@@ -11,6 +11,8 @@
  * + Ipp::Image#[x, y]=
  * + Ipp::Image#sub_image
  * - Ipp::Image#threshold!
+ * - freeze issue
+ * - taint issue
  */
 
 /* 2ASK:
@@ -73,6 +75,12 @@ void Init_ipp4r() {
     ENUM(ippAC4, "IppAC4")
   ENUM_END()
 
+  ENUM_DEF(rb_DataType, "DataType")
+    ENUM(ipp8u,  "Ipp8u")
+    ENUM(ipp16u, "Ipp16u")
+    ENUM(ipp32f, "Ipp32f")
+  ENUM_END()
+
   ENUM_DEF(rb_CmpOp, "CmpOp")
     ENUM(ippCmpLess,    "LessThan")
     ENUM(ippCmpGreater, "GreaterThan")
@@ -123,7 +131,7 @@ void Init_ipp4r() {
 
   rb_Exception = rb_define_class_under(rb_Ipp, "Exception", rb_eStandardError);
 
-  // cleanup
+  // forbid new()
   rb_funcall(rb_Data, rb_ID_private_class_method, 1, ID2SYM(rb_ID_new));
   rb_funcall(rb_ColorRef, rb_ID_private_class_method, 1, ID2SYM(rb_ID_new));
 }

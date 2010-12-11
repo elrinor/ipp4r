@@ -3,7 +3,14 @@
 #include "ipp4r.h"
 
 // -------------------------------------------------------------------------- //
-// Supplementary finctions
+// Supplementary macros
+// -------------------------------------------------------------------------- //
+#define COLOR_TO_GRAYSCALE(R, G, B)                                             \
+  ((Ipp8u) (0.299f * (R) + 0.587f * (G) + 0.114f * (B)))
+
+
+// -------------------------------------------------------------------------- //
+// Supplementary functions
 // -------------------------------------------------------------------------- //
 /**
  * Gets a color referenced by given ColorRef
@@ -34,6 +41,7 @@ static void rb_ColorRef_setter(VALUE self, Color* color) {
 
   raise_on_error(image_set_pixel(colorref->image, colorref->x, colorref->y, color));
 }
+
 
 // -------------------------------------------------------------------------- //
 // color_new

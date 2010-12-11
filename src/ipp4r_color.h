@@ -252,9 +252,6 @@ VALUE rb_ColorRef_a_eq(VALUE self, VALUE val);
 #define WRAP_COLORREF(COLORREF)                                                 \
   WRAP_COLORREF_A(COLORREF, rb_ColorRef)
 
-#define COLOR_TO_GRAYSCALE(R, G, B)                                             \
-  ((Ipp8u) (0.299f * (R) + 0.587f * (G) + 0.114f * (B)))
-
 #define R2C_COLOR(C_COLOR, R_COLOR) do {                                        \
     (C_COLOR).r = (Ipp8u) R2C_INT(rb_funcall((R_COLOR), rb_ID_r, 0));           \
     (C_COLOR).g = (Ipp8u) R2C_INT(rb_funcall((R_COLOR), rb_ID_g, 0));           \

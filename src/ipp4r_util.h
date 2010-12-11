@@ -17,6 +17,12 @@ int is_channels_supported(IppChannels channels);
 
 
 /**
+ * @returns TRUE if the given IppDataType is supported, FALSE otherwise
+ */
+int is_datatype_supported(IppDataType dataType);
+
+
+/**
  * @return size in bytes of one pixel for given channels
  */
 int pixel_size(IppChannels channels);
@@ -58,7 +64,6 @@ void raise_on_error(int status);
 // -------------------------------------------------------------------------- //
 #define Data_Get_Struct_Ret(VAL, C_TYPE)                                        \
   ((C_TYPE*) get_struct_checked_ret(VAL))
-
 
 #ifdef __cplusplus
 }

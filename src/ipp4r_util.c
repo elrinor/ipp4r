@@ -8,7 +8,16 @@
 // -------------------------------------------------------------------------- //
 int is_channels_supported(IppChannels channels) {
   int result;
-  IPPMETACALL(channels, result, TRUE; ipp, ARX_EMPTY, (3, (C1, C3, AC4)), ARX_EMPTY, FALSE);
+  IPPMETACALL(channels, result, TRUE; ipp, ARX_EMPTY, SUPPORTED_CHANNELS, ARX_EMPTY, FALSE);
+  return result;
+}
+
+// -------------------------------------------------------------------------- //
+// is_datatype_supported
+// -------------------------------------------------------------------------- //
+int is_datatype_supported(IppDataType dataType) {
+  int result;
+  IPPMETACALL(dataType, result, TRUE; ipp, ARX_EMPTY, SUPPORTED_DATATYPES, ARX_EMPTY, FALSE);
   return result;
 }
 
