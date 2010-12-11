@@ -105,6 +105,31 @@ Image* image_new(int width, int height, IppChannels channels) {
 
 
 // -------------------------------------------------------------------------- //
+// image_subimage
+// -------------------------------------------------------------------------- //
+Image* image_subimage(Image* image, int x, int y, int width, int height, int* pStatus) {
+  Image* newImage;
+  
+  assert(image != NULL);
+  assert(x >= 0 && y >= 0 && x + width <= WIDTH(image) && y + height <= HEIGHT(image));
+
+  newImage = ALLOC(Image); // ALLOC always succeeds or throws an exception
+
+  newImage->data = image->data; // data is shared
+  newImage->rb_data = image->rb_data;
+  newImage->is_subimage = TRUE;
+  newImage->x = x;
+  newImage->y = y;
+  newImage->width = width;
+  newImage->height = height;
+
+  if(pStatus != NULL)
+    *pStatus = ippStsNoErr;
+  return newImage;
+}
+
+
+// -------------------------------------------------------------------------- //
 // image_destroy
 // -------------------------------------------------------------------------- //
 void image_destroy(Image* image) {
@@ -330,7 +355,7 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
 // -------------------------------------------------------------------------- //
 // image_convert
 // -------------------------------------------------------------------------- //
-/*int image_convert(Image* image, IppChannels channels) {
+int image_convert(Image* image, IppChannels channels) {
   int status;
   Image* newImage;
 
@@ -346,7 +371,7 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
   image_destroy(newImage);
 
   return ippStsNoErr;  
-}*/
+}
 
 
 // -------------------------------------------------------------------------- //
@@ -366,11 +391,11 @@ int image_get_pixel(Image* image, int x, int y, Color* color) {
     color->r = color->g = color->b = *p;
   	break;
   case ippAC4:
-    color->a = *(p + 3);
+    color->as_array[3] = *(p + 3);
   case ippC3:
-    color->r = *(p + 2);
-    color->g = *(p + 1);
-    color->b = *(p + 0);
+    color->as_array[2] = *(p + 2);
+    color->as_array[1] = *(p + 1);
+    color->as_array[0] = *(p + 0);
     break;
   default:
     Unreachable();
@@ -394,14 +419,14 @@ int image_set_pixel(Image* image, int x, int y, Color* color) {
 
   switch(CHANNELS(image)) {
   case ippC1:
-    *p = (unsigned char) COLOR_TO_GRAYSCALE(color->r, color->g, color->b);
+    *p = (unsigned char) color_gray(color);
     break;
   case ippAC4:
-    *(p + 3) = (unsigned char) color->a;
+    *(p + 3) = (unsigned char) color->as_array[3];
   case ippC3:
-    *(p + 2) = (unsigned char) color->r;
-    *(p + 1) = (unsigned char) color->g;
-    *(p + 0) = (unsigned char) color->b;
+    *(p + 2) = (unsigned char) color->as_array[2];
+    *(p + 1) = (unsigned char) color->as_array[1];
+    *(p + 0) = (unsigned char) color->as_array[0];
     break;
   default:
     Unreachable();
@@ -416,40 +441,13 @@ int image_set_pixel(Image* image, int x, int y, Color* color) {
 // image_fill
 // -------------------------------------------------------------------------- //
 int image_fill(Image* image, Color* color) {
-  Ipp8u value[4];
   int status;
 
   assert(image != NULL && color != NULL);
 
-  switch(CHANNELS(image)) {
-  case ippC1:
-    value[0] = COLOR_TO_GRAYSCALE(color->r, color->g, color->b);
-  	break;
-  case ippAC4:
-    value[3] = color->a;
-  case ippC3:
-    value[2] = color->r;
-    value[1] = color->g;
-    value[0] = color->b;
-    break;
-  default:
-    Unreachable();
-  }
-
-  switch(CHANNELS(image)) {
-  case ippC1:
-    status = ippiSet_8u_C1R(value[0], PIXELS(image), WSTEP(image), IPPISIZE(image));
-    break;
-  case ippC3:
-    status = ippiSet_8u_C3R(value, PIXELS(image), WSTEP(image), IPPISIZE(image));
-    break;
-  case ippC4:
-    status = ippiSet_8u_C4R(value, PIXELS(image), WSTEP(image), IPPISIZE(image));
-    break;
-  default:
-    status = ippStsBadArgErr;
-    Unreachable();
-  }
+#define ippiSet_8u_XXR(a, b, c, d) ippiSet_8u_C1R(color_gray(color), b, c, d)
+  IPPMETACALL_A(CHANNELS(image), status, ippiSet_8u_, R, (3, (XX, C3, C4)), (3, (C1, C3, AC4)), (color->as_array, PIXELS(image), WSTEP(image), IPPISIZE(image)), ippStsBadArgErr; Unreachable());
+#undef ippiSet_8u_XXR
 
   return status;
 }
@@ -476,6 +474,64 @@ Image* image_transpose_copy(Image* image, int* pStatus) {
   if(IS_ERROR(status)) {
     image_destroy(newImage);
     newImage = NULL;
+  }
+
+end:
+  if(pStatus != NULL)
+    *pStatus = status;
+  return newImage;
+}
+
+
+// -------------------------------------------------------------------------- //
+// image_threshold_copy
+// -------------------------------------------------------------------------- //
+Image* image_threshold_copy(Image* image, Color* threshold, IppCmpOp cmp, Color* value, int* pStatus) {
+  Image* newImage;
+  int status;
+
+  assert(image != NULL && threshold != NULL && value != NULL);
+  assert(cmp == ippCmpLess || cmp == ippCmpGreater);
+
+  newImage = image_new(WIDTH(image), HEIGHT(image), CHANNELS(image));
+  if(newImage == NULL) {
+    status = ippStsNoMemErr;
+    goto end;
+  }
+
+  /* TODO: METACALL! */
+
+  /* call */
+  if(cmp == ippCmpGreater) {
+    switch(CHANNELS(image)) {
+    case ippC1:
+      status = ippiThreshold_GTVal_8u_C1R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), color_gray(threshold), color_gray(value));
+    	break;
+    case ippC3:
+      status = ippiThreshold_GTVal_8u_C3R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), threshold->as_array, value->as_array);
+      break;
+    case ippAC4:
+      status = ippiThreshold_GTVal_8u_AC4R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), threshold->as_array, value->as_array);
+      break;
+    default:
+      status = ippStsBadArgErr;
+      Unreachable();
+    }
+  } else {
+    switch(CHANNELS(image)) {
+    case ippC1:
+      status = ippiThreshold_LTVal_8u_C1R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), color_gray(threshold), color_gray(value));
+      break;
+    case ippC3:
+      status = ippiThreshold_LTVal_8u_C3R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), threshold->as_array, value->as_array);
+      break;
+    case ippAC4:
+      status = ippiThreshold_LTVal_8u_AC4R(PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image), threshold->as_array, value->as_array);
+      break;
+    default:
+      status = ippStsBadArgErr;
+      Unreachable();
+    }
   }
 
 end:

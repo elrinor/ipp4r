@@ -38,13 +38,14 @@ IPP4R_EXTERN VALUE rb_Exception;
 
 IPP4R_EXTERN VALUE rb_Enum;
 IPP4R_EXTERN VALUE rb_Channels;
+IPP4R_EXTERN VALUE rb_CmpOp;
 
 
 // -------------------------------------------------------------------------- //
 // Frequently used IDs
 // -------------------------------------------------------------------------- //
 #define IPP4R_IDS                                                               \
-  (11, (                                                                        \
+  (10, (                                                                        \
     (spaceship,            "<=>"),                                              \
     (enumerators,          NULL),                                               \
     (enumerators_by_value, NULL),                                               \
@@ -54,7 +55,6 @@ IPP4R_EXTERN VALUE rb_Channels;
     (a,                    NULL),                                               \
     (new,                  NULL),                                               \
     (private_class_method, NULL),                                               \
-    (remove_const,         NULL),                                               \
     (clone,                NULL)                                                \
   ))
 

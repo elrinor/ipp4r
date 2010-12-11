@@ -25,15 +25,15 @@ VALUE rb_Image_initialize(int argc, VALUE *argv, VALUE self) {
   case 3:
     filler = argv[2];
   case 2:
-    width = NUM2INT(argv[0]);
-    height = NUM2INT(argv[1]);
+    width = R2C_INT(argv[0]);
+    height = R2C_INT(argv[1]);
     if(width <= 0 || height <= 0)
       rb_raise(rb_Exception, "wrong image size: %d x %d", width, height);
     image = image_new(width, height, ippC3);
     break;
   case 1:
     Check_Type(argv[0], T_STRING);
-    image = image_load(RSTRING_PTR(argv[0]), &status);
+    image = image_load(R2C_STR(argv[0]), &status);
     raise_on_error(status);
     break;
   default:
@@ -70,6 +70,59 @@ VALUE rb_Image_initialize_copy(VALUE self, VALUE other) {
 }
 
 
+// -------------------------------------------------------------------------- //
+// rb_Image_subimage
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_subimage(int argc, VALUE *argv, VALUE self) {
+  int x0, y0, x1, y1, width, height, t;
+  Image* image;
+  Image* newImage;
+  int status;
+
+  width = 0;
+  height = 0;
+  image = Data_Get_Struct_Ret(self, Image);
+
+  switch(argc) {
+  case 4:
+    width = R2C_INT(argv[2]);
+    height = R2C_INT(argv[3]);
+  case 2:
+    x0 = R2C_INT(argv[0]);
+    y0 = R2C_INT(argv[1]);
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 2 or 4)", argc);
+    break;
+  }
+
+  if(width <= 0) {
+    x1 = image_width(image) + width;
+    width = x1 - x0;
+  } else
+    x1 = x0 + width;
+
+  if(height <= 0) {
+    y1 = image_height(image) + height;
+    height = y1 - y0;
+  } else
+    y1 = y0 + height;
+
+  if(width <= 0 || height <= 0)
+    rb_raise(rb_eArgError, "wrong subimage size: %d x %d", width, height);
+
+  if(x0 < 0 || y0 < 0 || x0 >= image_width(image) || y0 >= image_height(image))
+    rb_raise(rb_eArgError, "wrong subimage upper-left corner coordinates: (%d, %d)", x0, y0);
+
+  if(x1 <= 0 || y1 <= 0 || x1 > image_width(image) || y1 > image_height(image))
+    rb_raise(rb_eArgError, "wrong subimage lower-right corner coordinates: (%d, %d)", x1, y1);
+
+  newImage = image_subimage(image, x0, y0, width, height, &status);
+  raise_on_error(status);
+
+  return WRAP_IMAGE(newImage);
+}
+
 
 // -------------------------------------------------------------------------- //
 // rb_Image_save
@@ -77,7 +130,7 @@ VALUE rb_Image_initialize_copy(VALUE self, VALUE other) {
 VALUE rb_Image_save(VALUE self, VALUE fileName) {
   Check_Type(fileName, T_STRING);
 
-  raise_on_error(image_save(Data_Get_Struct_Ret(self, Image), RSTRING(fileName)->ptr));
+  raise_on_error(image_save(Data_Get_Struct_Ret(self, Image), R2C_STR(fileName)));
   return Qnil;
 }
 
@@ -86,7 +139,7 @@ VALUE rb_Image_save(VALUE self, VALUE fileName) {
 // rb_Image_add_rand_uniform_bang
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_add_rand_uniform_bang(VALUE self, VALUE lo, VALUE hi) {
-  raise_on_error(image_addranduniform(Data_Get_Struct_Ret(self, Image), NUM2INT(lo), NUM2INT(hi)));
+  raise_on_error(image_addranduniform(Data_Get_Struct_Ret(self, Image), R2C_INT(lo), R2C_INT(hi)));
 
   return self;
 }
@@ -108,7 +161,7 @@ VALUE rb_Image_width(VALUE self) {
 
   Data_Get_Struct(self, Image, image);
 
-  return INT2NUM(image_width(image));
+  return C2R_INT(image_width(image));
 }
 
 
@@ -120,7 +173,7 @@ VALUE rb_Image_height(VALUE self) {
 
   Data_Get_Struct(self, Image, image);
 
-  return INT2NUM(image_height(image));
+  return C2R_INT(image_height(image));
 }
 
 
@@ -154,11 +207,11 @@ VALUE rb_Image_convert(VALUE self, VALUE r_channels) {
 // -------------------------------------------------------------------------- //
 // rb_Image_convert_bang
 // -------------------------------------------------------------------------- //
-/*VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels) {
-  raise_on_error(image_convert(Data_Get_Struct_Ret(self, Image), R2C_ENUM(r_channels, rb_Channels)));
+VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels) {
+  /*raise_on_error*/(image_convert(Data_Get_Struct_Ret(self, Image), R2C_ENUM(r_channels, rb_Channels)));
   
   return self;
-}*/
+}
 
 
 // -------------------------------------------------------------------------- //
@@ -186,10 +239,7 @@ VALUE rb_Image_fill_bang(VALUE self, VALUE rb_color) {
 
   image = Data_Get_Struct_Ret(self, Image);
 
-  color.r = R2C_INT(rb_funcall(rb_color, rb_ID_r, 0));
-  color.g = R2C_INT(rb_funcall(rb_color, rb_ID_g, 0));
-  color.b = R2C_INT(rb_funcall(rb_color, rb_ID_b, 0));
-  color.a = R2C_INT(rb_funcall(rb_color, rb_ID_a, 0));
+  R2C_COLOR(color, rb_color);
 
   raise_on_error(image_fill(image, &color));
 
@@ -216,4 +266,43 @@ VALUE rb_Image_transpose(VALUE self) {
   raise_on_error(status);
 
   return WRAP_IMAGE(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_threshold
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_threshold(int argc, VALUE* argv, VALUE self) {
+  Image* newImage;
+  int status;
+  IppCmpOp cmp;
+  Color threshold, value;
+ 
+  switch(argc) {
+  case 1:
+  case 2:
+  case 3:
+    R2C_COLOR(threshold, argv[0]);
+    
+    if(argc >= 2)
+      cmp = R2C_ENUM(argv[1], rb_CmpOp);
+    else
+      cmp = ippCmpLess;
+
+    if(argc >= 3)
+      R2C_COLOR(value, argv[2]);
+    else
+      value = threshold;
+    
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1, 2 or 3)", argc);
+    break;
+  }
+
+  newImage = image_threshold_copy(Data_Get_Struct_Ret(self, Image), &threshold, cmp, &value, &status);
+  raise_on_error(status);
+
+  return WRAP_IMAGE(newImage);
+  return Qnil;
 }

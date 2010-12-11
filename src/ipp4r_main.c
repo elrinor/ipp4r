@@ -9,7 +9,8 @@
  * + Ipp::ColorRef
  * + Ipp::Image#[x, y]
  * + Ipp::Image#[x, y]=
- * - 
+ * + Ipp::Image#sub_image
+ * - Ipp::Image#threshold!
  */
 
 /* 2ASK:
@@ -72,6 +73,11 @@ void Init_ipp4r() {
     ENUM(ippAC4, "IppAC4")
   ENUM_END()
 
+  ENUM_DEF(rb_CmpOp, "CmpOp")
+    ENUM(ippCmpLess,    "LessThan")
+    ENUM(ippCmpGreater, "GreaterThan")
+  ENUM_END()
+
   /* And all other classes */
   rb_Image = rb_define_class_under(rb_Ipp, "Image", rb_cObject);
   rb_define_alloc_func(rb_Image, rb_Image_alloc);
@@ -80,7 +86,7 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "save", rb_Image_save, 1);
   rb_define_method(rb_Image, "add_rand_uniform!", rb_Image_add_rand_uniform_bang, 2);
   rb_define_method(rb_Image, "add_rand_uniform", rb_Image_add_rand_uniform, 2);
-  //rb_define_method(rb_Image, "convert!", rb_Image_convert_bang, 1);
+  rb_define_method(rb_Image, "convert!", rb_Image_convert_bang, 1);
   rb_define_method(rb_Image, "convert", rb_Image_convert, 1);
   rb_define_method(rb_Image, "width", rb_Image_width, 0);
   rb_define_method(rb_Image, "height", rb_Image_height, 0);
@@ -90,6 +96,8 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "fill!", rb_Image_fill_bang, 1);
   rb_define_method(rb_Image, "fill", rb_Image_fill, 1);
   rb_define_method(rb_Image, "transpose", rb_Image_transpose, 0);
+  rb_define_method(rb_Image, "subimage", rb_Image_subimage, -1);
+  rb_define_method(rb_Image, "threshold", rb_Image_threshold, -1);
 
   rb_Data = rb_define_class_under(rb_Image, "Data", rb_cObject);
 
@@ -116,12 +124,8 @@ void Init_ipp4r() {
   rb_Exception = rb_define_class_under(rb_Ipp, "Exception", rb_eStandardError);
 
   // cleanup
-  rb_funcall(rb_Ipp,   rb_ID_remove_const, 1, ID2SYM(rb_intern("Enum")));
-  rb_funcall(rb_Ipp,   rb_ID_remove_const, 1, ID2SYM(rb_intern("Channels")));
-  rb_funcall(rb_Image, rb_ID_remove_const, 1, ID2SYM(rb_intern("Data")));
-  rb_funcall(rb_Image, rb_ID_remove_const, 1, ID2SYM(rb_intern("ColorRef")));
-
-
+  rb_funcall(rb_Data, rb_ID_private_class_method, 1, ID2SYM(rb_ID_new));
+  rb_funcall(rb_ColorRef, rb_ID_private_class_method, 1, ID2SYM(rb_ID_new));
 }
 
 

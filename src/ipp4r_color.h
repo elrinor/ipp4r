@@ -2,6 +2,7 @@
 #define __IPP4R_COLOR_H__
 
 #include <ruby.h>
+#include <ippdefs.h>
 #include "ipp4r_fwd.h"
 
 #ifdef __cplusplus
@@ -15,7 +16,12 @@ extern "C" {
  * Color struct
  */
 struct _Color {
-  int r, g, b, a;
+  union {
+    Ipp8u as_array[4];
+    struct {
+      Ipp8u b, g, r, a;
+    };
+  };
 };
 
 
@@ -38,13 +44,19 @@ struct _ColorRef {
  *  
  * @returns newly allocated Color, or throws a ruby exception in case of an error.
  */
-Color* color_new(int red, int green, int blue, int alpha);
+Color* color_new(Ipp8u r, Ipp8u g, Ipp8u b, Ipp8u a);
 
 
 /**
  * Frees memory occupied by Color structure.
  */
 void color_destroy(Color* color);
+
+
+/**
+ * @returns color value in grayscale
+ */
+Ipp8u color_gray(Color* color);
 
 
 // -------------------------------------------------------------------------- //
@@ -241,7 +253,14 @@ VALUE rb_ColorRef_a_eq(VALUE self, VALUE val);
   WRAP_COLORREF_A(COLORREF, rb_ColorRef)
 
 #define COLOR_TO_GRAYSCALE(R, G, B)                                             \
-  ((int) (0.299f * (R) + 0.587f * (G) + 0.114f * (B)))
+  ((Ipp8u) (0.299f * (R) + 0.587f * (G) + 0.114f * (B)))
+
+#define R2C_COLOR(C_COLOR, R_COLOR) do {                                        \
+    (C_COLOR).r = (Ipp8u) R2C_INT(rb_funcall((R_COLOR), rb_ID_r, 0));           \
+    (C_COLOR).g = (Ipp8u) R2C_INT(rb_funcall((R_COLOR), rb_ID_g, 0));           \
+    (C_COLOR).b = (Ipp8u) R2C_INT(rb_funcall((R_COLOR), rb_ID_b, 0));           \
+    (C_COLOR).a = (Ipp8u) R2C_INT(rb_funcall((R_COLOR), rb_ID_a, 0));           \
+  } while(0)
 
 
 #ifdef __cplusplus

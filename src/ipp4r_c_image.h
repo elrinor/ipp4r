@@ -58,6 +58,20 @@ Image* image_new(int width, int height, IppChannels channels);
 
 
 /**
+ * Creates a subimage, that references a part of given image
+ *
+ * @param image source image
+ * @param x subimage upper-left corner x coordinate
+ * @param y subimage upper-left corner y coordinate
+ * @param width subimage width
+ * @param height subimage width
+ * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
+ * @returns a newly created subimage, or NULL in case of an error
+ */
+Image* image_subimage(Image* image, int x, int y, int width, int height, int* pStatus);
+
+
+/**
  * Frees the memory occupied by the input image.
  *
  * @param image image to free
@@ -148,7 +162,7 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus);
  * @param channels new channel type
  * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-/*int image_convert(Image* image, IppChannels channels);*/
+int image_convert(Image* image, IppChannels channels);
 
 
 /**
@@ -193,6 +207,20 @@ int image_fill(Image* image, Color* color);
  * @returns a newly created transposed image, or NULL in case of an error
  */
 Image* image_transpose_copy(Image* image, int* pStatus);
+
+
+/**
+ * Performs thresholding of pixel values in an image.
+ * Pixels that satisfy the cmp relation with threshold, are set to a specified value.
+ * Note that alpha channel is not thresholded.
+ *
+ * @param image source image
+ * @param threshold threshold value
+ * @param cmp relation, only ippCmpLess and ippCmpGreater are supported
+ * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
+ * @returns a newly created thresholded image, or NULL in case of an error
+ */
+Image* image_threshold_copy(Image* image, Color* threshold, IppCmpOp cmp, Color* value, int* pStatus);
 
 
 /*

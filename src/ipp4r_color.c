@@ -38,13 +38,13 @@ static void rb_ColorRef_setter(VALUE self, Color* color) {
 // -------------------------------------------------------------------------- //
 // color_new
 // -------------------------------------------------------------------------- //
-Color* color_new(int red, int green, int blue, int alpha) {
+Color* color_new(Ipp8u r, Ipp8u g, Ipp8u b, Ipp8u a) {
   Color* color;
   color = ALLOC(Color); // ALLOC always succeeds or throws an exception
-  color->r = red;
-  color->g = green;
-  color->b = blue;
-  color->a = alpha;
+  color->r = r;
+  color->g = g;
+  color->b = b;
+  color->a = a;
   return color;
 }
 
@@ -55,6 +55,14 @@ void color_destroy(Color* color) {
   assert(color != NULL);
 
   xfree(color); // we must use xfree here, since we allocated color with ALLOC
+}
+
+
+// -------------------------------------------------------------------------- //
+// color_gray
+// -------------------------------------------------------------------------- //
+Ipp8u color_gray(Color* color) {
+  return COLOR_TO_GRAYSCALE(color->r, color->g, color->b);
 }
 
 
@@ -72,21 +80,20 @@ VALUE rb_Color_alloc(VALUE klass) {
 // rb_Color_initialize
 // -------------------------------------------------------------------------- //
 VALUE rb_Color_initialize(int argc, VALUE *argv, VALUE self) {
-  int r, g, b, a;
+  Ipp8u r, g, b, a;
   Color* color;
 
-  a = 255;
-
+  a = 0xFF;
   switch (argc) {
   case 4:
-    a = NUM2INT(argv[3]);
+    a = (Ipp8u) NUM2INT(argv[3]);
   case 3:
-    r = NUM2INT(argv[0]);
-    g = NUM2INT(argv[1]);
-    b = NUM2INT(argv[2]);
+    r = (Ipp8u) NUM2INT(argv[0]);
+    g = (Ipp8u) NUM2INT(argv[1]);
+    b = (Ipp8u) NUM2INT(argv[2]);
     break;
   case 1:
-    r = g = b = NUM2INT(argv[0]);
+    r = g = b = (Ipp8u) NUM2INT(argv[0]);
     break;
   case 0:
     r = g = b = 0;
@@ -180,10 +187,7 @@ VALUE rb_ColorRef_check_raise(VALUE self) {
 // -------------------------------------------------------------------------- //
 VALUE rb_ColorRef_set(VALUE self, VALUE other) {
   Color color;
-  color.r = rb_funcall(other, rb_ID_r, 0);
-  color.g = rb_funcall(other, rb_ID_g, 0);
-  color.b = rb_funcall(other, rb_ID_b, 0);
-  color.a = rb_funcall(other, rb_ID_a, 0);
+  R2C_COLOR(color, other);
   rb_ColorRef_setter(self, &color);
   return self;
 }
@@ -195,7 +199,7 @@ VALUE rb_ColorRef_set(VALUE self, VALUE other) {
 #define DEFINE_COLORREF_GETTER(SUFFIX)                                          \
 VALUE rb_ColorRef_ ## SUFFIX(VALUE self) {                                      \
   Color color;                                                                  \
-  return C2R_INT(rb_ColorRef_getter(self, &color)-> SUFFIX);                    \
+  return C2R_INT(rb_ColorRef_getter(self, &color)->SUFFIX);                     \
 }
 
 DEFINE_COLORREF_GETTER(r)
@@ -210,7 +214,7 @@ DEFINE_COLORREF_GETTER(a)
 #define DEFINE_COLORREF_SETTER(SUFFIX)                                          \
 VALUE rb_ColorRef_ ## SUFFIX ## _eq(VALUE self, VALUE val) {                    \
   Color color;                                                                  \
-  rb_ColorRef_getter(self, &color)-> SUFFIX = R2C_INT(val);                     \
+  rb_ColorRef_getter(self, &color)->SUFFIX = (Ipp8u) R2C_INT(val);              \
   rb_ColorRef_setter(self, &color);                                             \
   return val;                                                                   \
 }

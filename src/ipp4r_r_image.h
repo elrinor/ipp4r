@@ -43,6 +43,18 @@ VALUE rb_Image_initialize_copy(VALUE self, VALUE other);
 /**
  * Method: 
  * <ul>
+ * <li> <tt>Ipp::Image#subimage(x, y, width=0, height=0)</tt>
+ * </ul>
+ * 
+ * Returns a reference to a subimage of current image.
+ * Zero or negative values for width / height indicate offset from lower-right corner of an image.
+ */
+VALUE rb_Image_subimage(int argc, VALUE *argv, VALUE self);
+
+
+/**
+ * Method: 
+ * <ul>
  * <li> <tt>Ipp::Image#save(fileName)</tt>
  * </ul>
  *         
@@ -135,7 +147,7 @@ VALUE rb_Image_convert(VALUE self, VALUE r_channels);
  * Converts given image to another channel type.
  * @returns self
  */
-/*VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels);*/
+VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels);
 
 
 /**
@@ -193,6 +205,19 @@ VALUE rb_Image_fill(VALUE self, VALUE color);
  * @returns a transposed copy of a source image
  */
 VALUE rb_Image_transpose(VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#threshold(threshold, cmp = Ipp::LessThan, value = threshold) </tt>
+ * </ul>
+ * 
+ * @returns a thresholded copy of a source image
+ */
+VALUE rb_Image_threshold(int argc, VALUE* argv, VALUE self);
+
+
 
 
 #ifdef __cplusplus
