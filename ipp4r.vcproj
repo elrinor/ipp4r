@@ -101,6 +101,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\ipp4r_fwd.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\ipp4r_macros.h"
 				>
 			</File>

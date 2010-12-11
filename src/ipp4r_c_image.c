@@ -11,7 +11,9 @@
 #define IS_SUBIMAGE(IMAGE) ((IMAGE)->is_subimage)
 #define HEIGHT(IMAGE) ((IS_SUBIMAGE(IMAGE) ? (IMAGE)->height : (IMAGE)->data->height))
 #define WIDTH(IMAGE) ((IS_SUBIMAGE(IMAGE) ? (IMAGE)->width : (IMAGE)->data->width))
+#define PIXELSIZE(IMAGE) ((IMAGE)->data->pixelSize)
 #define PIXELS(IMAGE) (image_pixels(IMAGE))
+#define PIXEL_AT(IMAGE, X, Y) ((char*) PIXELS(IMAGE) + Y * WSTEP(IMAGE) + X * PIXELSIZE(IMAGE))
 #define WSTEP(IMAGE) ((IMAGE)->data->wStep)
 #define CHANNELS(IMAGE) ((IMAGE)->data->channels)
 #define IPPISIZE(IMAGE) (image_ippisize(IMAGE))
@@ -41,7 +43,7 @@ static void* image_pixels(Image* image) {
   assert(image != NULL);
 
   if(IS_SUBIMAGE(image))
-    return (char*) image->data->pixels + (image->y + image->data->dy) * image->data->wStep + (image->x + image->data->dx) * image->data->pixelSize;
+    return (char*) image->data->pixels + (image->y + image->data->dy) * WSTEP(image) + (image->x + image->data->dx) * PIXELSIZE(image);
   else
     return image->data->pixels;
 }
@@ -135,7 +137,7 @@ Image* image_clone(Image* image, int* pStatus) {
   newImage = image_new(WIDTH(image), HEIGHT(image), CHANNELS(image));
 
   if(newImage != NULL) {
-    IPPMETACALL(CHANNELS(image), status, ippiCopy_8u_, R, (3, (C1, C3, AC4)), (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image)), ippStsBadArgErr);
+    IPPMETACALL(CHANNELS(image), status, ippiCopy_8u_, R, (3, (C1, C3, AC4)), (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image)), ippStsBadArgErr; Unreachable());
     if(IS_ERROR(status)) {
       image_destroy(newImage);
       newImage = NULL;
@@ -210,6 +212,7 @@ int image_save(Image* image, const char* fileName) {
     break;
   default:
     status = ippStsBadArgErr;
+    Unreachable();
   }
 
   if(IS_ERROR(status))
@@ -237,7 +240,7 @@ int image_addranduniform(Image* image, int lo, int hi) {
 
   seed = (unsigned int) time(NULL) + seedMod++;
 
-  IPPMETACALL(CHANNELS(image), status, ippiAddRandUniform_Direct_8u_, IR, (3, (C1, C3, AC4)), (PIXELS(image), WSTEP(image), IPPISIZE(image), (Ipp8u) lo, (Ipp8u) hi, &seed), ippStsBadArgErr);
+  IPPMETACALL(CHANNELS(image), status, ippiAddRandUniform_Direct_8u_, IR, (3, (C1, C3, AC4)), (PIXELS(image), WSTEP(image), IPPISIZE(image), (Ipp8u) lo, (Ipp8u) hi, &seed), ippStsBadArgErr; Unreachable());
   return status;
 }
 
@@ -249,6 +252,8 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
   int status;
   Image *result, *result2;
   int specialCase;
+
+  assert(image != NULL);
 
   if(CHANNELS(image) == channels) {
     /* nothing to convert */
@@ -273,6 +278,7 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
           break;
         default:
           status = ippStsBadArgErr;
+          Unreachable();
       }
       break;
     case ippC3:
@@ -285,6 +291,7 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
           break;
         default:
           status = ippStsBadArgErr;
+          Unreachable();
       }
       break;
     case ippC4:
@@ -297,10 +304,12 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
           break;
         default:
           status = ippStsBadArgErr;
+          Unreachable();
       }
       break;
     default:
       status = ippStsBadArgErr;
+      Unreachable();
   }
 
   if(IS_ERROR(status)) {
@@ -321,7 +330,7 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus) {
 // -------------------------------------------------------------------------- //
 // image_convert
 // -------------------------------------------------------------------------- //
-int image_convert(Image* image, IppChannels channels) {
+/*int image_convert(Image* image, IppChannels channels) {
   int status;
   Image* newImage;
 
@@ -337,7 +346,144 @@ int image_convert(Image* image, IppChannels channels) {
   image_destroy(newImage);
 
   return ippStsNoErr;  
+}*/
+
+
+// -------------------------------------------------------------------------- //
+// image_get_pixel
+// -------------------------------------------------------------------------- //
+int image_get_pixel(Image* image, int x, int y, Color* color) {
+  char* p;
+
+  assert(image != NULL);
+  assert(x >= 0 && y >= 0 && x < WIDTH(image) && y <= HEIGHT(image));
+
+  p = PIXEL_AT(image, x, y);
+
+  color->a = 0xFF;
+  switch(CHANNELS(image)) {
+  case ippC1:
+    color->r = color->g = color->b = *p;
+  	break;
+  case ippAC4:
+    color->a = *(p + 3);
+  case ippC3:
+    color->r = *(p + 2);
+    color->g = *(p + 1);
+    color->b = *(p + 0);
+    break;
+  default:
+    Unreachable();
+    return ippStsBadArgErr;
+  }
+
+  return ippStsNoErr;
 }
+
+
+// -------------------------------------------------------------------------- //
+// image_set_pixel
+// -------------------------------------------------------------------------- //
+int image_set_pixel(Image* image, int x, int y, Color* color) {
+  char* p;
+
+  assert(image != NULL);
+  assert(x >= 0 && y >= 0 && x < WIDTH(image) && y <= HEIGHT(image));
+
+  p = PIXEL_AT(image, x, y);
+
+  switch(CHANNELS(image)) {
+  case ippC1:
+    *p = (unsigned char) COLOR_TO_GRAYSCALE(color->r, color->g, color->b);
+    break;
+  case ippAC4:
+    *(p + 3) = (unsigned char) color->a;
+  case ippC3:
+    *(p + 2) = (unsigned char) color->r;
+    *(p + 1) = (unsigned char) color->g;
+    *(p + 0) = (unsigned char) color->b;
+    break;
+  default:
+    Unreachable();
+    return ippStsBadArgErr;
+  }
+
+  return ippStsNoErr;
+}
+
+
+// -------------------------------------------------------------------------- //
+// image_fill
+// -------------------------------------------------------------------------- //
+int image_fill(Image* image, Color* color) {
+  Ipp8u value[4];
+  int status;
+
+  assert(image != NULL && color != NULL);
+
+  switch(CHANNELS(image)) {
+  case ippC1:
+    value[0] = COLOR_TO_GRAYSCALE(color->r, color->g, color->b);
+  	break;
+  case ippAC4:
+    value[3] = color->a;
+  case ippC3:
+    value[2] = color->r;
+    value[1] = color->g;
+    value[0] = color->b;
+    break;
+  default:
+    Unreachable();
+  }
+
+  switch(CHANNELS(image)) {
+  case ippC1:
+    status = ippiSet_8u_C1R(value[0], PIXELS(image), WSTEP(image), IPPISIZE(image));
+    break;
+  case ippC3:
+    status = ippiSet_8u_C3R(value, PIXELS(image), WSTEP(image), IPPISIZE(image));
+    break;
+  case ippC4:
+    status = ippiSet_8u_C4R(value, PIXELS(image), WSTEP(image), IPPISIZE(image));
+    break;
+  default:
+    status = ippStsBadArgErr;
+    Unreachable();
+  }
+
+  return status;
+}
+
+
+// -------------------------------------------------------------------------- //
+// image_transpose_copy
+// -------------------------------------------------------------------------- //
+Image* image_transpose_copy(Image* image, int* pStatus) {
+  Image* newImage;
+  int status;
+
+  assert(image != NULL);
+
+  newImage = image_new(HEIGHT(image), WIDTH(image), CHANNELS(image));
+  if(newImage == NULL) {
+    status = ippStsNoMemErr;
+    goto end;
+  }
+
+  IPPMETACALL_A(CHANNELS(image), status, ippiTranspose_8u_, R, (3, (C1, C3, C4)), (3, (C1, C3, AC4)), 
+    (PIXELS(image), WSTEP(image), PIXELS(newImage), WSTEP(newImage), IPPISIZE(image)), ippStsBadArgErr; Unreachable());
+
+  if(IS_ERROR(status)) {
+    image_destroy(newImage);
+    newImage = NULL;
+  }
+
+end:
+  if(pStatus != NULL)
+    *pStatus = status;
+  return newImage;
+}
+
 
 
 // -------------------------------------------------------------------------- //

@@ -2,6 +2,7 @@
 #define __IPP4R_ENUM_H__
 
 #include <ruby.h>
+#include "ipp4r_fwd.h"
 #include "ipp4r.h" /* for rb_ID_* */
 
 #ifdef __cplusplus
@@ -14,10 +15,10 @@ extern "C" {
 /**
  * Enumeration struct, for emulating enums in ruby.
  */
-typedef struct _Enum {
+struct _Enum {
   ID id;
   int value;
-} Enum;
+};
 
 
 // -------------------------------------------------------------------------- //

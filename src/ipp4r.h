@@ -3,6 +3,7 @@
 
 #include <ippdefs.h>
 #include <arx/Preprocessor.h>
+#include "ipp4r_fwd.h"
 #include "ipp4r_c_image.h"
 #include "ipp4r_r_image.h"
 #include "ipp4r_data.h"
@@ -31,6 +32,7 @@ IPP4R_EXTERN VALUE rb_Ipp;
 IPP4R_EXTERN VALUE rb_Image;
 IPP4R_EXTERN VALUE rb_Data;
 IPP4R_EXTERN VALUE rb_Color;
+IPP4R_EXTERN VALUE rb_ColorRef;
 
 IPP4R_EXTERN VALUE rb_Exception;
 
@@ -42,16 +44,18 @@ IPP4R_EXTERN VALUE rb_Channels;
 // Frequently used IDs
 // -------------------------------------------------------------------------- //
 #define IPP4R_IDS                                                               \
-  (9, (                                                                         \
+  (11, (                                                                        \
     (spaceship,            "<=>"),                                              \
     (enumerators,          NULL),                                               \
     (enumerators_by_value, NULL),                                               \
-    (red,                  NULL),                                               \
-    (green,                NULL),                                               \
-    (blue,                 NULL),                                               \
+    (r,                    NULL),                                               \
+    (g,                    NULL),                                               \
+    (b,                    NULL),                                               \
+    (a,                    NULL),                                               \
     (new,                  NULL),                                               \
     (private_class_method, NULL),                                               \
-    (remove_const,         NULL)                                                \
+    (remove_const,         NULL),                                               \
+    (clone,                NULL)                                                \
   ))
 
 #define IPP4R_ID_DECL_I(NAMES, ARG)                                             \

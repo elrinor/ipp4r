@@ -17,8 +17,13 @@ VALUE rb_Image_initialize(int argc, VALUE *argv, VALUE self) {
   int height;
   Image* image;
   int status;
+  VALUE filler;
+
+  filler = Qnil;
 
   switch (argc) {
+  case 3:
+    filler = argv[2];
   case 2:
     width = NUM2INT(argv[0]);
     height = NUM2INT(argv[1]);
@@ -41,8 +46,29 @@ VALUE rb_Image_initialize(int argc, VALUE *argv, VALUE self) {
 
   DATA_PTR(self) = image;
 
+  if(filler != Qnil)
+    rb_Image_fill_bang(self, filler);
+
   return self;
 }
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_initialize_copy
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_initialize_copy(VALUE self, VALUE other) {
+  Image* newImage;
+  int status;
+
+  newImage = image_clone(Data_Get_Struct_Ret(other, Image), &status);
+
+  raise_on_error(status);
+
+  DATA_PTR(self) = newImage;
+
+  return self;
+}
+
 
 
 // -------------------------------------------------------------------------- //
@@ -70,14 +96,7 @@ VALUE rb_Image_add_rand_uniform_bang(VALUE self, VALUE lo, VALUE hi) {
 // rb_Image_add_rand_uniform
 // -------------------------------------------------------------------------- //
 VALUE rb_Image_add_rand_uniform(VALUE self, VALUE lo, VALUE hi) {
-  Image* newImage;
-  int status;
-  
-  newImage = image_clone(Data_Get_Struct_Ret(self, Image), &status);
-
-  raise_on_error(status);
-
-  return rb_Image_add_rand_uniform_bang(WRAP_IMAGE(newImage), lo, hi);
+  return rb_Image_add_rand_uniform_bang(rb_funcall(self, rb_ID_clone, 0), lo, hi);
 }
 
 
@@ -135,11 +154,66 @@ VALUE rb_Image_convert(VALUE self, VALUE r_channels) {
 // -------------------------------------------------------------------------- //
 // rb_Image_convert_bang
 // -------------------------------------------------------------------------- //
-VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels) {
+/*VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels) {
   raise_on_error(image_convert(Data_Get_Struct_Ret(self, Image), R2C_ENUM(r_channels, rb_Channels)));
   
+  return self;
+}*/
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_ref
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_ref(VALUE self, VALUE x, VALUE y) {
+  return rb_ColorRef_check_raise(WRAP_COLORREF(colorref_new(Data_Get_Struct_Ret(self, Image), self, R2C_INT(x), R2C_INT(y))));
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_ref_eq
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_ref_eq(VALUE self, VALUE x, VALUE y, VALUE color) {
+  return rb_ColorRef_set(rb_Image_ref(self, x, y), color);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_fill_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_fill_bang(VALUE self, VALUE rb_color) {
+  Color color;
+  Image* image;
+
+  image = Data_Get_Struct_Ret(self, Image);
+
+  color.r = R2C_INT(rb_funcall(rb_color, rb_ID_r, 0));
+  color.g = R2C_INT(rb_funcall(rb_color, rb_ID_g, 0));
+  color.b = R2C_INT(rb_funcall(rb_color, rb_ID_b, 0));
+  color.a = R2C_INT(rb_funcall(rb_color, rb_ID_a, 0));
+
+  raise_on_error(image_fill(image, &color));
+
   return self;
 }
 
 
+// -------------------------------------------------------------------------- //
+// rb_Image_fill
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_fill(VALUE self, VALUE color) {
+  return rb_Image_fill_bang(rb_funcall(self, rb_ID_clone, 0), color);
+}
 
+
+// -------------------------------------------------------------------------- //
+// rb_Image_transpose
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_transpose(VALUE self) {
+  Image* newImage;
+  int status;
+
+  newImage = image_transpose_copy(Data_Get_Struct_Ret(self, Image), &status);
+  raise_on_error(status);
+
+  return WRAP_IMAGE(newImage);
+}

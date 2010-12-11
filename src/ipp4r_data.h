@@ -2,6 +2,7 @@
 #define __IPP4R_IMAGEDATA_H__
 
 #include <ippdefs.h>
+#include "ipp4r_fwd.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,7 +13,7 @@ extern "C" {
  * Data stores real image parameters, not the ROI ones, like Image does.
  * One instance of Data is shared between several instances of Image.
  */
-typedef struct _Data {
+struct _Data {
   IppChannels channels; /**< channel type of an image */
 
   void* pixels;         /**< pointer to aligned image data */
@@ -22,7 +23,7 @@ typedef struct _Data {
   int pixelSize;        /**< size of one image pixel in bytes */
 
   int dx, dy;           /**< image growth values */
-} Data;
+};
 
 
 /**

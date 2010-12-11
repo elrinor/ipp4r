@@ -22,7 +22,7 @@ int pixel_size(IppChannels channels) {
 #define PIXELSIZE_C1 (sizeof(Ipp8u))
 #define PIXELSIZE_C3 (3 * sizeof(Ipp8u))
 #define PIXELSIZE_AC4 (4 * sizeof(Ipp8u))
-  IPPMETACALL(channels, pixelSize, PIXELSIZE_, ARX_EMPTY, (3, (C1, C3, AC4)), ARX_EMPTY, -1; assert(!"Unreachable") );
+  IPPMETACALL(channels, pixelSize, PIXELSIZE_, ARX_EMPTY, (3, (C1, C3, AC4)), ARX_EMPTY, -1; Unreachable() );
 
   return pixelSize;
 }

@@ -6,6 +6,9 @@ extern "C" {
 #endif
 
 
+// -------------------------------------------------------------------------- //
+// Function Declarations
+// -------------------------------------------------------------------------- //
 /**
  * Alloc function for Image class. Note that the memory is actually allocated in "initialize" method.
  */
@@ -24,6 +27,17 @@ VALUE rb_Image_alloc(VALUE klass);
  * @see image_new
  */
 VALUE rb_Image_initialize(int argc, VALUE *argv, VALUE self);
+
+
+/**
+ * Method: 
+ * <ul>
+ * <li> <tt>Ipp::Image#initialize_copy(image)</tt>
+ * </ul>
+ * 
+ * Initialize copy, for clone & dup
+ */
+VALUE rb_Image_initialize_copy(VALUE self, VALUE other);
 
 
 /**
@@ -121,7 +135,64 @@ VALUE rb_Image_convert(VALUE self, VALUE r_channels);
  * Converts given image to another channel type.
  * @returns self
  */
-VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels);
+/*VALUE rb_Image_convert_bang(VALUE self, VALUE r_channels);*/
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#[](x, y) </tt>
+ * </ul>
+ * 
+ * @returns a color reference to pixel at (x, y)
+ */
+VALUE rb_Image_ref(VALUE self, VALUE x, VALUE y);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#[]=(x, y, color) </tt>
+ * </ul>
+ * 
+ * Sets a color of image at (x, y) to color
+ * @returns color
+ */
+VALUE rb_Image_ref_eq(VALUE self, VALUE x, VALUE y, VALUE color);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#fill!(color) </tt>
+ * </ul>
+ * 
+ * Fills image with the given color
+ * @returns self
+ */
+VALUE rb_Image_fill_bang(VALUE self, VALUE rb_color);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#fill(color) </tt>
+ * </ul>
+ * 
+ * Copies an image and fills a copy with the given color
+ */
+VALUE rb_Image_fill(VALUE self, VALUE color);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#transpose </tt>
+ * </ul>
+ * 
+ * @returns a transposed copy of a source image
+ */
+VALUE rb_Image_transpose(VALUE self);
 
 
 #ifdef __cplusplus

@@ -3,12 +3,15 @@
 
 #include <ruby.h>
 #include <ippdefs.h>
-#include "ipp4r_data.h"
+#include "ipp4r_fwd.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+// -------------------------------------------------------------------------- //
+// Typedefs
+// -------------------------------------------------------------------------- //
 /**
  * Main Image structure. <p>
  *
@@ -32,7 +35,7 @@ extern "C" {
  * The motivation here is simple: Image class is opaque and user knows nothing about it's internal structure. From outside our Image structure is perceived as a
  * "smart reference" to image data, and therefore the data itself is a part of Image's internal state.
  */
-typedef struct _Image {
+struct _Image {
   VALUE rb_data;        /**< Ruby wrapper around Data associated with this Image */
   Data* data;           /**< Pointer to Data structure associated with this Image */
 
@@ -41,9 +44,11 @@ typedef struct _Image {
   int y;                /**< ROI y coordinate */
   int width;            /**< width of ROI in pixels */
   int height;           /**< height of ROI in pixels */
-} Image;
+};
 
-
+// -------------------------------------------------------------------------- //
+// Function declarations
+// -------------------------------------------------------------------------- //
 /**
  * Allocates memory for image.
  * 
@@ -143,7 +148,51 @@ Image* image_convert_copy(Image* image, IppChannels channels, int* pStatus);
  * @param channels new channel type
  * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-int image_convert(Image* image, IppChannels channels);
+/*int image_convert(Image* image, IppChannels channels);*/
+
+
+/**
+ * Gets color of a pixel at (x, y)
+ * 
+ * @param image source image
+ * @param x pixel x coordinate
+ * @param y pixel y coordinate
+ * @param color (OUT) color of a pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_get_pixel(Image* image, int x, int y, Color* color);
+
+
+/**
+ * Gets color of a pixel at (x, y)
+ * 
+ * @param image source image
+ * @param x pixel x coordinate
+ * @param y pixel y coordinate
+ * @param color new color value of a pixel
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_set_pixel(Image* image, int x, int y, Color* color);
+
+
+/**
+ * Fills the given image with the given color
+ *
+ * @param image source image
+ * @param color color to use
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_fill(Image* image, Color* color);
+
+
+/**
+ * Transposes a source image
+ *
+ * @param image source image
+ * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
+ * @returns a newly created transposed image, or NULL in case of an error
+ */
+Image* image_transpose_copy(Image* image, int* pStatus);
 
 
 /*
@@ -164,6 +213,17 @@ int image_convert(Image* image, IppChannels channels);
  * @returns textual description of an error or warning
  */
 const char* image_error_message(int status);
+
+
+// -------------------------------------------------------------------------- //
+// Macros
+// -------------------------------------------------------------------------- //
+#define WRAP_IMAGE_A(IMAGE, CLASS)                                              \
+  Data_Wrap_Struct((CLASS), image_mark, image_destroy, (IMAGE))
+
+#define WRAP_IMAGE(IMAGE)                                                       \
+  WRAP_IMAGE_A(IMAGE, rb_Image)
+
 
 #ifdef __cplusplus
 }

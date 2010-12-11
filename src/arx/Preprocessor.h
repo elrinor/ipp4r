@@ -772,6 +772,39 @@
 #define ARX_BRACK_IT(ARG) [ARG]
 #define ARX_ABRACK_IT(ARG) <ARG>
 
+/**
+ * Array of indexes
+ */
+#define ARX_INDEX_ARRAY(SIZE) ARX_INDEX_ARRAY_I(SIZE)
+#define ARX_INDEX_ARRAY_I(SIZE) ARX_INDEX_ARRAY_II(ARX_INDEX_ARRAY_ ## SIZE ())
+#define ARX_INDEX_ARRAY_II(res) res
+
+#define ARX_INDEX_ARRAY_1() (1, (0))
+#define ARX_INDEX_ARRAY_2() (2, (0, 1))
+#define ARX_INDEX_ARRAY_3() (3, (0, 1, 2))
+#define ARX_INDEX_ARRAY_4() (4, (0, 1, 2, 3))
+#define ARX_INDEX_ARRAY_5() (5, (0, 1, 2, 3, 4))
+#define ARX_INDEX_ARRAY_6() (6, (0, 1, 2, 3, 4, 5))
+#define ARX_INDEX_ARRAY_7() (7, (0, 1, 2, 3, 4, 5, 6))
+#define ARX_INDEX_ARRAY_8() (8, (0, 1, 2, 3, 4, 5, 6, 7))
+#define ARX_INDEX_ARRAY_9() (9, (0, 1, 2, 3, 4, 5, 6, 7, 8))
+#define ARX_INDEX_ARRAY_10() (10, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+#define ARX_INDEX_ARRAY_11() (11, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+#define ARX_INDEX_ARRAY_12() (12, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11))
+#define ARX_INDEX_ARRAY_13() (13, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
+#define ARX_INDEX_ARRAY_14() (14, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13))
+#define ARX_INDEX_ARRAY_15() (15, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+#define ARX_INDEX_ARRAY_16() (16, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))
+#define ARX_INDEX_ARRAY_17() (17, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))
+#define ARX_INDEX_ARRAY_18() (18, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17))
+#define ARX_INDEX_ARRAY_19() (19, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18))
+#define ARX_INDEX_ARRAY_20() (20, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19))
+#define ARX_INDEX_ARRAY_21() (21, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20))
+#define ARX_INDEX_ARRAY_22() (22, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21))
+#define ARX_INDEX_ARRAY_23() (23, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22))
+#define ARX_INDEX_ARRAY_24() (24, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23))
+#define ARX_INDEX_ARRAY_25() (25, (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24))
+
 
 /**
  * Array foreach macro

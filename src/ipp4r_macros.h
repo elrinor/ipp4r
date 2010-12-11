@@ -8,7 +8,7 @@
 // Debug
 // -------------------------------------------------------------------------- //
 #define DBG() printf("%s", "#####"__FUNCTION__ ":" ARX_STRINGIZE(__LINE__) "!\n");
-
+#define Unreachable() assert(!"Unreachable")
 
 // -------------------------------------------------------------------------- //
 // IPP-related macros
@@ -17,16 +17,19 @@
 
 #define IPPCHANNELS (12, (C0, C1, C2, C3, C4, P2, P3, P4, AC1, AC4, A0C4, AP4))
 
-#define IPPMETACALL(CRITERIA, TARGET, FUNC_PREFIX, FUNC_SUFFIX, FUNC_ARRAY, PARAMS, DEFAULTVALUE) \
+#define IPPMETACALL_A(CRITERIA, TARGET, FUNC_PREFIX, FUNC_SUFFIX, FUNC_ARRAY, CRITERIA_ARRAY, PARAMS, DEFAULTVALUE) \
   switch(CRITERIA) {                                                            \
-  ARX_ARRAY_FOREACH(FUNC_ARRAY, IPPMETACALL_I, (4, (FUNC_PREFIX, FUNC_SUFFIX, TARGET, PARAMS))) \
+  ARX_ARRAY_FOREACH(ARX_INDEX_ARRAY(ARX_ARRAY_SIZE(FUNC_ARRAY)), IPPMETACALL_I, (6, (FUNC_PREFIX, FUNC_SUFFIX, TARGET, PARAMS, FUNC_ARRAY, CRITERIA_ARRAY))) \
   default:                                                                      \
     TARGET = DEFAULTVALUE;                                                      \
   }
 
-#define IPPMETACALL_I(FUNC_MIDDLE, ARGS)                                        \
-  case ARX_JOIN(ipp, FUNC_MIDDLE):                                              \
-    ARX_ARRAY_ELEM(2, ARGS) = ARX_JOIN(ARX_ARRAY_ELEM(0, ARGS), ARX_JOIN(FUNC_MIDDLE, ARX_ARRAY_ELEM(1, ARGS))) ARX_ARRAY_ELEM(3, ARGS); \
+#define IPPMETACALL(CRITERIA, TARGET, FUNC_PREFIX, FUNC_SUFFIX, FUNC_ARRAY, PARAMS, DEFAULTVALUE) \
+  IPPMETACALL_A(CRITERIA, TARGET, FUNC_PREFIX, FUNC_SUFFIX, FUNC_ARRAY, FUNC_ARRAY, PARAMS, DEFAULTVALUE)
+
+#define IPPMETACALL_I(INDEX, ARGS)                                              \
+  case ARX_JOIN(ipp, ARX_ARRAY_ELEM(INDEX, ARX_ARRAY_ELEM(5, ARGS))):           \
+    ARX_ARRAY_ELEM(2, ARGS) = ARX_JOIN(ARX_ARRAY_ELEM(0, ARGS), ARX_JOIN(ARX_ARRAY_ELEM(INDEX, ARX_ARRAY_ELEM(4, ARGS)), ARX_ARRAY_ELEM(1, ARGS))) ARX_ARRAY_ELEM(3, ARGS); \
     break;
 
 #ifdef IS_ERROR
@@ -48,16 +51,6 @@
 #  undef TRUE
 #endif
 #define TRUE 0
-
-
-// -------------------------------------------------------------------------- //
-// Image wrappers
-// -------------------------------------------------------------------------- //
-#define WRAP_IMAGE_A(IMAGE, CLASS)                                              \
-  Data_Wrap_Struct((CLASS), image_mark, image_destroy, (IMAGE))
-
-#define WRAP_IMAGE(IMAGE)                                                       \
-  WRAP_IMAGE_A(IMAGE, rb_Image)
 
 
 // -------------------------------------------------------------------------- //
