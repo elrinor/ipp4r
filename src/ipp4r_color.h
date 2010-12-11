@@ -55,7 +55,7 @@ struct _ColorRef {
 // Color C interface
 // -------------------------------------------------------------------------- //
 /**
- * Allocates memory for Color and initializes it. <br>
+ * Allocates memory for Color and initializes it. Use free for deallocation. <br>
  * Note that r, g, b and a parameters must be in [0, 1] range.
  *
  * @param r red color component
@@ -65,12 +65,6 @@ struct _ColorRef {
  * @returns newly allocated Color, or NULL in case of an error.
  */
 Color* color_new(IppMetaNumber r, IppMetaNumber g, IppMetaNumber b, IppMetaNumber a);
-
-
-/**
- * Frees memory occupied by Color structure.
- */
-void color_destroy(Color* color);
 
 
 /**
@@ -129,16 +123,11 @@ VALUE rb_Color_to_s(VALUE self);
 // -------------------------------------------------------------------------- //
 /**
  * Allocates memory for ColorRef and initializes it.
+ * Use free for deallocation.
  *
  * @returns newly allocated ColorRef, or NULL in case of an error.
  */
 ColorRef* colorref_new(Image* image, VALUE rb_image, int x, int y);
-
-
-/**
-* Frees memory occupied by ColorRef structure.
- */
-void colorref_destroy(ColorRef* colorref);
 
 
 /**
@@ -262,7 +251,7 @@ VALUE rb_ColorRef_a_eq(VALUE self, VALUE val);
  * @param CLASS <tt>VALUE</tt> of ruby class used for wrapping
  */
 #define WRAP_COLORREF_A(COLORREF, CLASS)                                        \
-  Data_Wrap_Struct((CLASS), colorref_mark, colorref_destroy, (COLORREF))
+  Data_Wrap_Struct((CLASS), colorref_mark, assert_not_null_and_free, (COLORREF))
 
 
 /**

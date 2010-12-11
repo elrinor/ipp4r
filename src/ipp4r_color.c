@@ -49,15 +49,6 @@ Color* color_new(IppMetaNumber r, IppMetaNumber g, IppMetaNumber b, IppMetaNumbe
   return color;
 }
 
-// -------------------------------------------------------------------------- //
-// color_destroy
-// -------------------------------------------------------------------------- //
-void color_destroy(Color* color) {
-  assert(color != NULL);
-
-  free(color);
-}
-
 
 // -------------------------------------------------------------------------- //
 // color_gray
@@ -71,9 +62,7 @@ void color_destroy(Color* color) {
 // rb_Color_alloc
 // -------------------------------------------------------------------------- //
 VALUE rb_Color_alloc(VALUE klass) {
-  VALUE color;
-  color = Data_Wrap_Struct(klass, NULL, color_destroy, NULL); /* Underlying C struct will be allocated later, in "initialize" method */
-  return color;
+  return Data_Wrap_Struct(klass, NULL, assert_not_null_and_free, NULL); /* Underlying C struct will be allocated later, in "initialize" method */
 }
 
 
@@ -118,10 +107,7 @@ VALUE rb_Color_initialize(int argc, VALUE *argv, VALUE self) {
 // rb_Color_to_s
 // -------------------------------------------------------------------------- //
 VALUE rb_Color_to_s(VALUE self) {
-  Color* color;
   char buf[100]; // 10 is enough, but 100 is safer %)
-
-  Data_Get_Struct(self, Color, color);
 
   sprintf(buf, "#%02x%02x%02x%02x", 
     (int) (255.0f * rb_funcall(self, rb_ID_r, 0)), 
@@ -158,16 +144,6 @@ ColorRef* colorref_new(Image* image, VALUE rb_image, int x, int y) {
   colorref->x = x;
   colorref->y = y;
   return colorref;
-}
-
-
-// -------------------------------------------------------------------------- //
-// colorref_destroy
-// -------------------------------------------------------------------------- //
-void colorref_destroy(ColorRef* colorref) {
-  assert(colorref != NULL);
-
-  free(colorref);
 }
 
 

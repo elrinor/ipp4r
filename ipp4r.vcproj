@@ -129,6 +129,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\ipp4r_struct.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipp4r_struct.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\ipp4r_util.c"
 				>
 			</File>

@@ -170,6 +170,15 @@ int image_ensure_border(Image* image, int border);
 
 
 /**
+ * Recalculates border pixels of an image.
+ *
+ * @param image source image
+ * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
+ */
+int image_rebuild_border(Image* image);
+
+
+/**
  * Loads an image from a file.
  *
  * @param filename name of a file to load image from
@@ -353,15 +362,28 @@ int image_erode3x3(Image* image);
 Image* image_erode3x3_copy(Image* image, int* pStatus);
 
 
-/*
- * Applies gaussian blur filter on src image, storing result in dst.
- *
- * @param src source image
- * @param dst destination image
- * @param sigma standard deviation of the gaussian kernel
+/**
+ * Blurs an image using a simple box filter.
+ * 
+ * @param image source image
+ * @param maskSize size of the mask in pixels
+ * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
  * @returns ippStsNoErr if everything went OK, non-zero error or warning code otherwise
  */
-/*IppStatus ippimage_gaussianblur(IppImage* src, IppImage* dst, float sigma);*/
+int image_filter_box(Image* image, IppiSize maskSize, IppiPoint anchor);
+
+
+/**
+ * Blurs an image using a simple box filter.
+ *
+ * @param image source image
+ * @param maskSize size of the mask in pixels
+ * @param anchor anchor cell specifying the mask alignment with respect to the position of the input pixel
+ * @param pStatus (OUT) pointer to a variable to write an error/warning code or ippStsNoErr to
+ * @returns a newly created eroded image, or NULL in case of an error
+ */
+Image* image_filter_box_copy(Image* image, IppiSize maskSize, IppiPoint anchor, int* pStatus);
+
 
 
 /**

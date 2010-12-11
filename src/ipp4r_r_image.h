@@ -308,6 +308,65 @@ VALUE rb_Image_erode3x3(VALUE self);
 VALUE rb_Image_erode3x3_bang(VALUE self);
 
 
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#filter_box(size, anchor = {size.width / 2, size.height / 2}) </tt>
+ * </ul>
+ *
+ * Blurs an image using a simple box filter.
+ * @returns a newly created blurred image
+ */
+VALUE rb_Image_filter_box(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#filter_box!(size, anchor = {size.width / 2, size.height / 2}) </tt>
+ * </ul>
+ *
+ * Blurs an image using a simple box filter.
+ * @returns self
+ */
+VALUE rb_Image_filter_box_bang(int argc, VALUE* argv, VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#rebuild_border!</tt>
+ * </ul>
+ *
+ * Recalculates the border pixels of an image
+ * @returns self
+ */
+VALUE rb_Image_rebuild_border_bang(VALUE self);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#ensure_border!(int size)</tt>
+ * </ul>
+ *
+ * Adds border pixels to an image. If a border of necessary size is already available, does nothing.
+ * @returns self
+ */
+VALUE rb_Image_ensure_border_bang(VALUE self, VALUE size);
+
+
+/**
+ * Method:
+ * <ul>
+ * <li> <tt>Ipp::Image#border</tt>
+ * </ul>
+ * 
+ * @returns available image border
+ */
+VALUE rb_Image_border(VALUE self);
+
+
 
 #ifdef __cplusplus
 }

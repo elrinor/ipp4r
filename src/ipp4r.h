@@ -12,6 +12,7 @@
 #include "ipp4r_util.h"
 #include "ipp4r_macro.h"
 #include "ipp4r_metatype.h"
+#include "ipp4r_struct.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,14 +29,12 @@ extern "C" {
 // -------------------------------------------------------------------------- //
 // Config
 // -------------------------------------------------------------------------- //
-#define USE_TRACE
+//#define USE_TRACE
 
 // -------------------------------------------------------------------------- //
 // Debug facilities
 // -------------------------------------------------------------------------- //
 #define Unreachable() assert(!"Unreachable")
-
-IPP4R_EXTERN int trace_depth;
 
 #ifdef USE_TRACE
 #  define IS_VOID_HELPER_void 
@@ -48,13 +47,17 @@ IPP4R_EXTERN int trace_depth;
 #  define TRACE_RETURN(val) { trace_retval = (val); trace_depth--; TRACE_HELPER_BORDER("<"); return trace_retval; }
 #  define TRACE_RETURN_0() { trace_depth--; TRACE_HELPER_BORDER("<"); return; }
 #  define TRACE(PRINTF_ARGS) {TRACE_HELPER_TAIL(); printf(":"); printf PRINTF_ARGS; printf("\n");}
+#  define IF_TRACE(EXPR) EXPR
 #else
 #  define TRACE_FUNC(RETURN_TYPE, FUNC_NAME, ARGS) RETURN_TYPE FUNC_NAME ARGS
 #  define TRACE_END
 #  define TRACE_RETURN(val) return (val)
 #  define TRACE_RETURN_0() return
 #  define TRACE(PRINTF_ARGS) 
+#  define IF_TRACE(EXPR)
 #endif
+
+IF_TRACE(IPP4R_EXTERN int trace_depth;)
 
 
 // -------------------------------------------------------------------------- //
@@ -66,6 +69,8 @@ IPP4R_EXTERN VALUE rb_Image;
 IPP4R_EXTERN VALUE rb_Data;
 IPP4R_EXTERN VALUE rb_Color;
 IPP4R_EXTERN VALUE rb_ColorRef;
+IPP4R_EXTERN VALUE rb_Point;
+IPP4R_EXTERN VALUE rb_Size;
 
 IPP4R_EXTERN VALUE rb_Exception;
 

@@ -37,6 +37,12 @@ DEFINE_ACCESSOR(Color, a, METANUM)
 DEFINE_READER(ColorRef, x, INT)
 DEFINE_READER(ColorRef, y, INT)
 
+DEFINE_ACCESSOR(Point, x, INT)
+DEFINE_ACCESSOR(Point, y, INT)
+
+DEFINE_ACCESSOR(Size, width, INT)
+DEFINE_ACCESSOR(Size, height, INT)
+
 
 // -------------------------------------------------------------------------- //
 // Init
@@ -52,7 +58,7 @@ void Init_ipp4r() {
 #undef IPP4R_ID_SET_I
 
   /* trace depth */
-  trace_depth = 0;
+  IF_TRACE(trace_depth = 0;)
 
 
   /* Then init Ipp module */
@@ -95,6 +101,8 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "initialize", rb_Image_initialize, -1);
   rb_define_method(rb_Image, "initialize_copy", rb_Image_initialize_copy, 1);
   rb_define_method(rb_Image, "save", rb_Image_save, 1);
+  rb_define_method(rb_Image, "ensure_border!", rb_Image_ensure_border_bang, 1);
+  rb_define_method(rb_Image, "rebuild_border!", rb_Image_rebuild_border_bang, 0);
   rb_define_method(rb_Image, "add_rand_uniform!", rb_Image_add_rand_uniform_bang, 2);
   rb_define_method(rb_Image, "add_rand_uniform", rb_Image_add_rand_uniform, 2);
   rb_define_method(rb_Image, "convert", rb_Image_convert, 1);
@@ -103,6 +111,7 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "channels", rb_Image_channels, 0);
   rb_define_method(rb_Image, "metatype", rb_Image_metatype, 0);
   rb_define_method(rb_Image, "datatype", rb_Image_datatype, 0);
+  rb_define_method(rb_Image, "border", rb_Image_border, 0);
   rb_define_method(rb_Image, "[]", rb_Image_ref, 2);
   rb_define_method(rb_Image, "[]=", rb_Image_ref_eq, 3);
   rb_define_method(rb_Image, "fill!", rb_Image_fill_bang, 1);
@@ -115,6 +124,8 @@ void Init_ipp4r() {
   rb_define_method(rb_Image, "dilate3x3", rb_Image_dilate3x3, 0);
   rb_define_method(rb_Image, "erode3x3!", rb_Image_erode3x3_bang, 0);
   rb_define_method(rb_Image, "erode3x3", rb_Image_erode3x3, 0);
+  rb_define_method(rb_Image, "filter_box!", rb_Image_filter_box_bang, -1);
+  rb_define_method(rb_Image, "filter_box", rb_Image_filter_box, -1);
 
   rb_Data = rb_define_class_under(rb_Image, "Data", rb_cObject);
 
@@ -135,6 +146,20 @@ void Init_ipp4r() {
   RB_DEFINE_ACCESSOR(ColorRef, a);
   RB_DEFINE_READER(ColorRef, x);
   RB_DEFINE_READER(ColorRef, x);
+
+  rb_Size = rb_define_class_under(rb_Ipp, "Size", rb_cObject);
+  rb_define_alloc_func(rb_Size, rb_Size_alloc);
+  rb_define_method(rb_Size, "initialize", rb_Size_initialize, -1);
+  rb_define_method(rb_Size, "to_s", rb_Size_to_s, 0);
+  RB_DEFINE_ACCESSOR(Size, width);
+  RB_DEFINE_ACCESSOR(Size, height);
+
+  rb_Point = rb_define_class_under(rb_Ipp, "Point", rb_cObject);
+  rb_define_alloc_func(rb_Point, rb_Point_alloc);
+  rb_define_method(rb_Point, "initialize", rb_Point_initialize, -1);
+  rb_define_method(rb_Point, "to_s", rb_Point_to_s, 0);
+  RB_DEFINE_ACCESSOR(Point, x);
+  RB_DEFINE_ACCESSOR(Point, y);
 
   rb_Exception = rb_define_class_under(rb_Ipp, "Exception", rb_eStandardError);
 

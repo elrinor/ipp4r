@@ -35,7 +35,9 @@ VALUE rb_Enum_alloc(VALUE klass) {
   Enum *enum_;
   VALUE rb_enum;
   
-  rb_enum = Data_Make_Struct(klass, Enum, NULL, NULL, enum_);
+  /* Note that we doesn't assign a free function here.
+   * We don't need it because we are not going to deallocate enums. */
+  rb_enum = Data_Make_Struct(klass, Enum, NULL, NULL, enum_); 
   
   OBJ_FREEZE(rb_enum);
   return rb_enum;

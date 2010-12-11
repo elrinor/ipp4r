@@ -4,6 +4,12 @@
 #include "ipp4r.h"
 
 // -------------------------------------------------------------------------- //
+// Debug facilities
+// -------------------------------------------------------------------------- //
+IF_TRACE(static int data_count = 0;)
+
+
+// -------------------------------------------------------------------------- //
 // Supplementary functions
 // -------------------------------------------------------------------------- //
 /**
@@ -101,7 +107,8 @@ TRACE_FUNC(Data*, data_new, (int width, int height, IppMetaType metaType, int bo
 
   data->pixels = (char*) data->buffer + data->border * (data->wStep + data->pixelSize); /* pixels points to the "beginning" of an image */
 
-
+  IF_TRACE(data_count++;)
+  TRACE(("data_count=%d", data_count));
   TRACE(("%08X w=%d h=%d b=%d m=%d buf=%08X", data, width, height, border, metaType, buffer));
 
   TRACE_RETURN(data);
@@ -114,6 +121,8 @@ TRACE_FUNC(Data*, data_new, (int width, int height, IppMetaType metaType, int bo
 TRACE_FUNC(void, data_destroy, (Data* data)) {
   assert(data != NULL);
 
+  IF_TRACE(data_count--;)
+  TRACE(("data_count=%d", data_count));
   TRACE(("%08X w=%d h=%d m=%d buf=%08X", data, data->width, data->height, data->metaType, data->buffer));
 
   ipp4rFree(data->buffer);

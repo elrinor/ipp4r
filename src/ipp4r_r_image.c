@@ -466,3 +466,89 @@ VALUE rb_Image_erode3x3_bang(VALUE self) {
   return self;
 }
 
+
+// -------------------------------------------------------------------------- //
+// rb_Image_filter_box_parseargs
+// -------------------------------------------------------------------------- //
+static void rb_Image_filter_box_parseargs(int argc, VALUE* argv, IppiSize* size, IppiPoint* anchor) {
+  switch(argc) {
+  case 1:
+  case 2:
+    *size = *Data_Get_Struct_Ret(argv[0], IppiSize);
+
+    if(argc == 1) {
+      anchor->x = size->width / 2;
+      anchor->y = size->height / 2;
+    } else
+      *anchor = *Data_Get_Struct_Ret(argv[1], IppiPoint);
+    break;
+  default:
+    rb_raise(rb_eArgError, "wrong number of arguments (%d instead of 1 or 2)", argc);
+    break;
+  }
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_filter_box
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_filter_box(int argc, VALUE* argv, VALUE self) {
+  Image* newImage;
+  int status;
+  IppiSize size;
+  IppiPoint anchor;
+
+  rb_Image_filter_box_parseargs(argc, argv, &size, &anchor);
+
+  newImage = image_filter_box_copy(Data_Get_Struct_Ret(self, Image), size, anchor, &status);
+  raise_on_error(status);
+
+  return image_wrap(newImage);
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_filter_box_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_filter_box_bang(int argc, VALUE* argv, VALUE self) {
+  IppiSize size;
+  IppiPoint anchor;
+
+  rb_Image_filter_box_parseargs(argc, argv, &size, &anchor);
+
+  raise_on_error(image_filter_box(Data_Get_Struct_Ret(self, Image), size, anchor));
+
+  return self;
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_rebuild_border_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_rebuild_border_bang(VALUE self) {
+  raise_on_error(image_rebuild_border(Data_Get_Struct_Ret(self, Image)));
+  return self;
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_ensure_border_bang
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_ensure_border_bang(VALUE self, VALUE size) {
+  raise_on_error(image_ensure_border(Data_Get_Struct_Ret(self, Image), R2C_INT(size)));
+  return self;
+}
+
+
+// -------------------------------------------------------------------------- //
+// rb_Image_border
+// -------------------------------------------------------------------------- //
+VALUE rb_Image_border(VALUE self) {
+  return C2R_INT(image_border_available(Data_Get_Struct_Ret(self, Image)));
+}
+
+
+
+
+
+

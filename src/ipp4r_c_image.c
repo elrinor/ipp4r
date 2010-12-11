@@ -40,13 +40,7 @@
  * @returns IppiSize of an Image
  */
 static IppiSize image_ippisize(Image* image) {
-  IppiSize result;
-
-  assert(image != NULL);
-
-  result.height = HEIGHT(image);
-  result.width = WIDTH(image);
-  return result;
+  return ippi_size(WIDTH(image), HEIGHT(image));
 }
 
 
@@ -104,7 +98,7 @@ int image_border_available(Image* image) {
 // -------------------------------------------------------------------------- //
 // image_ensure_border
 // -------------------------------------------------------------------------- //
-int image_ensure_border(Image* image, int border) {
+TRACE_FUNC(int, image_ensure_border, (Image* image, int border)) {
   Image* result;
   int status;
   int borderAvailable;
@@ -116,13 +110,13 @@ int image_ensure_border(Image* image, int border) {
 
   borderAvailable = BORDER_AVAILABLE(image);
   if(borderAvailable >= border)
-    return ippStsNoErr;
+    TRACE_RETURN(ippStsNoErr);
 
   borderGrowth = border - borderAvailable;
   
   result = image_new(image->data->width, image->data->height, METATYPE(image), BORDER(image) + borderGrowth);
   if(result == NULL)
-    return ippStsNoMemErr;
+    TRACE_RETURN(ippStsNoMemErr);
 
   srcRoi.width  = image->data->width   + 2 * BORDER(image);
   srcRoi.height = image->data->height  + 2 * BORDER(image);
@@ -135,14 +129,36 @@ int image_ensure_border(Image* image, int border) {
 
   if(IS_ERROR(status)) {
     image_destroy(result);
-    return status;
+    TRACE_RETURN(status);
   }
 
   data_swap(image->data, result->data);
   image_destroy(result);
 
-  return status;
-}
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_rebuild_border
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(int, image_rebuild_border, (Image* image)) {
+  int status;
+  IppiSize dstRoi, srcRoi;
+
+  assert(image != NULL);
+
+  srcRoi.width  = image->data->width;
+  srcRoi.height = image->data->height;
+  dstRoi.width  = image->data->width  + 2 * BORDER(image);
+  dstRoi.height = image->data->height + 2 * BORDER(image);
+
+#define METAFUNC(M, ARG) ARX_JOIN_3(ippiCopyReplicateBorder_, M_REPLACE_D_IF_D(M, 32f, 32s), IR) (image->data->pixels, WSTEP(image), srcRoi, dstRoi, BORDER(image), BORDER(image))
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, METAFUNC, ~, Unreachable(), ippStsBadArgErr);
+#undef METAFUNC  
+
+  TRACE_RETURN(status);
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //
@@ -335,6 +351,17 @@ TRACE_FUNC(Image*, image_load, (const char* fileName, int border, int* pStatus))
   }
 
   status = ippiCopy_8u_C3R(iplImage->imageData, iplImage->widthStep, PWI(image));
+  if(IS_ERROR(status)) {
+    image_destroy(image);
+    image = NULL;
+    goto error;
+  }
+
+  status = image_rebuild_border(image);
+  if(IS_ERROR(status)) {
+    image_destroy(image);
+    image = NULL;
+  }
 
 error:
   cvReleaseImage(&iplImage);
@@ -762,7 +789,13 @@ TRACE_FUNC(Image*, image_dilate3x3_copy, (Image* image, int* pStatus)) {
 
   assert(image != NULL);
 
-  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), max(BORDER(image), 1));
+  status = image_ensure_border(image, 1);
+  if(IS_ERROR(status)) {
+    result = NULL;
+    goto end;
+  }
+
+  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image));
   if(result == NULL) {
     status = ippStsNoMemErr;
     goto end;
@@ -804,7 +837,13 @@ TRACE_FUNC(Image*, image_erode3x3_copy, (Image* image, int* pStatus)) {
 
   assert(image != NULL);
 
-  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), max(BORDER(image), 1));
+  status = image_ensure_border(image, 1);
+  if(IS_ERROR(status)) {
+    result = NULL;
+    goto end;
+  }
+
+  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image));
   if(result == NULL) {
     status = ippStsNoMemErr;
     goto end;
@@ -820,42 +859,51 @@ end:
 
 
 // -------------------------------------------------------------------------- //
-// ippimage_gaussianblur
+// image_filter_box
 // -------------------------------------------------------------------------- //
-/*IppStatus ippimage_gaussianblur(IppImage* src, IppImage* dst, float sigma) {
-  IppStatus status;
-  int bufferSize;
-  int kernelSize;
-  void* buffer;
+TRACE_FUNC(int, image_filter_box, (Image* image, IppiSize maskSize, IppiPoint anchor)) {
+  int status;
 
-  if(NOTALLOCATED(src) || sigma <= 0)
-    return ippStsBadArgErr;
+  assert(image != NULL);
 
-  kernelSize = ((int)(sigma * 4)) * 2 + 1;
-  if(kernelSize < 3)
-    kernelSize = 3;
-
-  status = ippiFilterGaussGetBufferSize_32f_C1R(ippimage_ippisize(src), kernelSize, &bufferSize);
+  status = image_ensure_border(image, max(max(anchor.x, anchor.y), max(maskSize.width - anchor.x - 1, maskSize.height - anchor.y - 1)));
   if(IS_ERROR(status))
-    return status;
+    TRACE_RETURN(status);
 
-  buffer = malloc(bufferSize);
-  if(buffer == NULL)
-    return ippStsNoMemErr;
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiFilterBox_, IR, (PWI(image), maskSize, anchor)), Unreachable(), ippStsBadArgErr);
 
-  if(NOTALLOCATED(dst) || src->width != dst->width || src->height != dst->height) {
-    ippimage_freebuffer(dst);
-    status = ippimage_allocbuffer(dst, src->width, src->height);
-    if(IS_ERROR(status))
-      goto error;
+  TRACE_RETURN(status);
+} TRACE_END
+
+
+// -------------------------------------------------------------------------- //
+// image_filter_box_copy
+// -------------------------------------------------------------------------- //
+TRACE_FUNC(Image*, image_filter_box_copy, (Image* image, IppiSize maskSize, IppiPoint anchor, int* pStatus)) {
+  Image* result;
+  int status;
+
+  assert(image != NULL);
+
+  status = image_ensure_border(image, max(max(anchor.x, anchor.y), max(maskSize.width - anchor.x - 1, maskSize.height - anchor.y - 1)));
+  if(IS_ERROR(status)) {
+    result = NULL;
+    goto end;
   }
 
-  status = ippiFilterGaussBorder_32f_C1R(src->data, src->wStep, dst->data, dst->wStep, ippimage_ippisize(src), kernelSize, sigma, ippBorderRepl, 0, buffer);
+  result = image_new(WIDTH(image), HEIGHT(image), METATYPE(image), BORDER(image));
+  if(result == NULL) {
+    status = ippStsNoMemErr;
+    goto end;
+  }
 
-error:
-  free(buffer);
-  return status;
-}*/
+  IPPMETACALL(METATYPE(image), status =, M_SUPPORTED, IPPMETAFUNC, (ippiFilterBox_, R, (PWPWI(image, result), maskSize, anchor)), Unreachable(), ippStsBadArgErr);
+
+end:
+  if(pStatus != NULL)
+    *pStatus = status;
+  TRACE_RETURN(result);
+} TRACE_END
 
 
 // -------------------------------------------------------------------------- //

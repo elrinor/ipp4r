@@ -41,6 +41,12 @@ VALUE assert_not_qnil_ret(VALUE arg);
 void raise_on_error(int status);
 
 
+/**
+ * Checked destructor
+ */
+void assert_not_null_and_free(void* p);
+
+
 // -------------------------------------------------------------------------- //
 // Defines
 // -------------------------------------------------------------------------- //
