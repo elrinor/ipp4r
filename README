@@ -45,4 +45,4 @@ If you're working on a non-win32 platform, then you may have to fix extconf.rb -
 There is currently no documentation on ipp4r, but the sources are heavily commented in javadoc style, so you can use Doxygen or some other tool to generate documentation. You can also look at some examples in /example subdirectory, which should provide sufficient introduction.
 
 Please direct any questions to the author,
-  Alexander Fokin <ru.elric@gmail.com>
+  Alexander Fokin <apfokin@gmail.com>
